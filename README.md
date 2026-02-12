@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="https://raw.githubusercontent.com/anjieyang/bitget-mcp-server/main/assets/logo.png" alt="Bitget" width="80" />
+  <img src="https://s2.coinmarketcap.com/static/img/exchanges/64x64/513.png" alt="Bitget" width="80" />
 </p>
 
 <h1 align="center">Bitget MCP Server</h1>
