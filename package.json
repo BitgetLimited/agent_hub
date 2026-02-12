@@ -1,0 +1,48 @@
+{
+  "name": "bitget-mcp-server",
+  "version": "1.0.6",
+  "description": "Official Bitget MCP Server",
+  "type": "module",
+  "license": "MIT",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "bin": {
+    "bitget-mcp-server": "dist/index.js"
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
+  "scripts": {
+    "release:check": "npm run typecheck && npm run build && npm pack --dry-run",
+    "build": "tsup",
+    "typecheck": "tsc --noEmit",
+    "prepublishOnly": "npm run release:check",
+    "start": "node dist/index.js",
+    "smoke:test": "node scripts/mcp-smoke-test.mjs",
+    "smoke:test:readonly": "node scripts/mcp-smoke-test.mjs --read-only",
+    "smoke:test:auth": "node scripts/mcp-smoke-test.mjs --use-env-auth",
+    "smoke:test:auth:readonly": "node scripts/mcp-smoke-test.mjs --read-only --use-env-auth"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "keywords": [
+    "bitget",
+    "mcp",
+    "model-context-protocol",
+    "trading"
+  ],
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.26.0",
+    "zod": "^3.25.76"
+  },
+  "devDependencies": {
+    "@types/node": "^25.2.2",
+    "tsup": "^8.5.1",
+    "typescript": "^5.9.3"
+  }
+}

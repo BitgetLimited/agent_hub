@@ -1,0 +1,29 @@
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Environment / secrets
+.env
+.env.*
+
+# npm
+*.tgz
+
+# Logs
+*.log
+npm-debug.log*
+
+# Cursor MCP config (contains credentials)
+.cursor/
