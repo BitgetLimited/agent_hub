@@ -1,0 +1,30 @@
+{
+  "name": "bitget-mcp-server",
+  "version": "1.0.6",
+  "description": "Official Bitget MCP Server",
+  "type": "module",
+  "license": "MIT",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "bin": {
+    "bitget-mcp-server": "dist/index.js"
+  },
+  "files": ["dist", "README.md"],
+  "publishConfig": { "access": "public" },
+  "scripts": {
+    "build": "tsup",
+    "typecheck": "tsc --noEmit",
+    "prepublishOnly": "npm run typecheck && npm run build"
+  },
+  "engines": { "node": ">=18" },
+  "keywords": ["bitget", "mcp", "model-context-protocol", "trading"],
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.26.0",
+    "bitget-core": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/node": "^25.2.2",
+    "tsup": "^8.5.1",
+    "typescript": "^5.9.3"
+  }
+}
