@@ -301,6 +301,7 @@ export function registerSpotTradeTools(): ToolSpec[] {
         const path = orderId
           ? "/api/v2/spot/trade/modify-plan-order"
           : "/api/v2/spot/trade/place-plan-order";
+        const rawTriggerType = readString(args, "triggerType") ?? "fill_price";
         const response = await context.client.privatePost(
           path,
           compactObject({
@@ -308,10 +309,7 @@ export function registerSpotTradeTools(): ToolSpec[] {
             symbol: readString(args, "symbol"),
             side: readString(args, "side"),
             triggerPrice: requireString(args, "triggerPrice"),
-            triggerType:
-              readString(args, "triggerType") === "last_price"
-                ? "fill_price"
-                : (readString(args, "triggerType") ?? "fill_price"),
+            triggerType: rawTriggerType === "last_price" ? "fill_price" : rawTriggerType,
             orderType: readString(args, "orderType"),
             executePrice: readString(args, "price"),
             planType: "amount",

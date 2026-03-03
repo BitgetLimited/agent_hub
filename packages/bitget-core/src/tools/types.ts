@@ -1,11 +1,16 @@
-import type { Tool } from "@modelcontextprotocol/sdk/types.js";
 import type { BitgetRestClient } from "../client/rest-client.js";
 import type { BitgetConfig } from "../config.js";
 import type { ModuleId } from "../constants.js";
 
 export type ToolArgs = Record<string, unknown>;
 
-export type JsonSchema = Tool["inputSchema"];
+export type JsonSchema = {
+  type: "object";
+  properties?: Record<string, unknown>;
+  required?: string[];
+  additionalProperties?: boolean | Record<string, unknown>;
+  [key: string]: unknown;
+};
 
 export interface ToolContext {
   config: BitgetConfig;
@@ -19,18 +24,4 @@ export interface ToolSpec {
   inputSchema: JsonSchema;
   isWrite: boolean;
   handler: (args: ToolArgs, context: ToolContext) => Promise<unknown>;
-}
-
-export function toMcpTool(tool: ToolSpec): Tool {
-  return {
-    name: tool.name,
-    description: tool.description,
-    inputSchema: tool.inputSchema,
-    annotations: {
-      readOnlyHint: !tool.isWrite,
-      destructiveHint: tool.isWrite,
-      idempotentHint: !tool.isWrite,
-      openWorldHint: true,
-    },
-  };
 }

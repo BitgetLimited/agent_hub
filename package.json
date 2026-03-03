@@ -4,7 +4,8 @@
   "scripts": {
     "build": "pnpm -r build",
     "typecheck": "pnpm -r typecheck",
-    "dev": "pnpm -r --parallel dev"
+    "dev": "pnpm -r --parallel dev",
+    "test": "pnpm -r run test"
   },
   "engines": {
     "node": ">=18"

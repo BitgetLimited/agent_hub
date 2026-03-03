@@ -8,12 +8,14 @@ export type ErrorType =
   | "InternalError";
 
 export interface ToolErrorPayload {
-  error: true;
-  type: ErrorType;
-  code?: string;
-  message: string;
-  suggestion?: string;
-  endpoint?: string;
+  ok: false;
+  error: {
+    type: ErrorType;
+    code?: string;
+    message: string;
+    suggestion?: string;
+    endpoint?: string;
+  };
   timestamp: string;
 }
 
@@ -97,25 +99,28 @@ export function toToolErrorPayload(
 ): ToolErrorPayload {
   if (error instanceof BitgetMcpError) {
     return {
-      error: true,
-      type: error.type,
-      code: error.code,
-      message: error.message,
-      suggestion: error.suggestion,
-      endpoint: error.endpoint ?? fallbackEndpoint,
+      ok: false,
+      error: {
+        type: error.type,
+        code: error.code,
+        message: error.message,
+        suggestion: error.suggestion,
+        endpoint: error.endpoint ?? fallbackEndpoint,
+      },
       timestamp: new Date().toISOString(),
     };
   }
 
   const message = error instanceof Error ? error.message : String(error);
-
   return {
-    error: true,
-    type: "InternalError",
-    message,
-    suggestion:
-      "Unexpected server error. Check tool arguments and retry. If it persists, inspect server logs.",
-    endpoint: fallbackEndpoint,
+    ok: false,
+    error: {
+      type: "InternalError",
+      message,
+      suggestion:
+        "Unexpected server error. Check tool arguments and retry. If it persists, inspect server logs.",
+      endpoint: fallbackEndpoint,
+    },
     timestamp: new Date().toISOString(),
   };
 }

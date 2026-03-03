@@ -10,7 +10,6 @@ import {
   BitgetApiError,
   buildTools,
   getEarnCapabilityStatus,
-  toMcpTool,
   toToolErrorPayload,
   warmupEarnCapability,
   MODULES,
@@ -18,6 +17,20 @@ import {
   SERVER_VERSION,
 } from "bitget-core";
 import type { BitgetConfig, ModuleId, ToolSpec } from "bitget-core";
+
+function toMcpTool(tool: ToolSpec): Tool {
+  return {
+    name: tool.name,
+    description: tool.description,
+    inputSchema: tool.inputSchema as Tool["inputSchema"],
+    annotations: {
+      readOnlyHint: !tool.isWrite,
+      destructiveHint: tool.isWrite,
+      idempotentHint: !tool.isWrite,
+      openWorldHint: true,
+    },
+  };
+}
 
 const SYSTEM_CAPABILITIES_TOOL_NAME = "system_get_capabilities";
 const SYSTEM_CAPABILITIES_TOOL: Tool = {
@@ -134,7 +147,9 @@ function errorResult(
   const payload = toToolErrorPayload(error);
   const structured: Record<string, unknown> = {
     tool: toolName,
-    ...payload,
+    ok: false,
+    error: payload.error,
+    timestamp: payload.timestamp,
     capabilities: capabilitySnapshot,
   };
   return {
@@ -163,6 +178,7 @@ export function createServer(config: BitgetConfig): Server {
   const tools = buildTools(config);
   const toolMap = new Map<string, ToolSpec>(tools.map((tool) => [tool.name, tool]));
   const hasEarnTools = tools.some((tool) => tool.module === "earn");
+  const capabilitySnapshot = buildCapabilitySnapshot(config);
   let earnWarmupDone = false;
   const ensureEarnWarmupIfNeeded = async (): Promise<void> => {
     if (!hasEarnTools || !config.hasAuth || earnWarmupDone) {
@@ -198,7 +214,6 @@ export function createServer(config: BitgetConfig): Server {
     const toolName = request.params.name;
     await ensureEarnWarmupIfNeeded();
     if (toolName === SYSTEM_CAPABILITIES_TOOL_NAME) {
-      const snapshot = buildCapabilitySnapshot(config);
       return successResult(
         toolName,
         {
@@ -206,15 +221,15 @@ export function createServer(config: BitgetConfig): Server {
             name: SERVER_NAME,
             version: SERVER_VERSION,
           },
-          capabilities: snapshot,
+          capabilities: capabilitySnapshot,
         },
-        snapshot,
+        capabilitySnapshot,
       );
     }
     const tool = toolMap.get(toolName);
 
     if (!tool) {
-      return unknownToolResult(toolName, buildCapabilitySnapshot(config));
+      return unknownToolResult(toolName, capabilitySnapshot);
     }
 
     try {
@@ -222,9 +237,9 @@ export function createServer(config: BitgetConfig): Server {
         config,
         client,
       });
-      return successResult(toolName, response, buildCapabilitySnapshot(config));
+      return successResult(toolName, response, capabilitySnapshot);
     } catch (error) {
-      return errorResult(toolName, error, buildCapabilitySnapshot(config));
+      return errorResult(toolName, error, capabilitySnapshot);
     }
   });
 
