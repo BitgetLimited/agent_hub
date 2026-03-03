@@ -1,144 +1,95 @@
 <p align="center">
-  <img src="https://s2.coinmarketcap.com/static/img/exchanges/64x64/513.png" alt="Bitget" width="80" />
+  <img src="assets/logo.png" alt="Bitget" width="120" />
 </p>
 
-<h1 align="center">Bitget MCP Server</h1>
+<h1 align="center">Bitget Agent Hub</h1>
 
 <p align="center">
   <strong>Connect AI assistants to Bitget — trade, query, and manage your crypto portfolio through natural language.</strong>
 </p>
 
 <p align="center">
-  <a href="https://www.npmjs.com/package/bitget-mcp-server"><img src="https://img.shields.io/npm/v/bitget-mcp-server.svg?style=flat-square&color=cb3837" alt="npm version" /></a>
-  <a href="https://www.npmjs.com/package/bitget-mcp-server"><img src="https://img.shields.io/npm/dm/bitget-mcp-server.svg?style=flat-square&color=blue" alt="npm downloads" /></a>
-  <a href="https://www.npmjs.com/package/bitget-mcp-server"><img src="https://img.shields.io/node/v/bitget-mcp-server.svg?style=flat-square&color=43853d" alt="node version" /></a>
-  <a href="https://www.npmjs.com/package/bitget-mcp-server"><img src="https://img.shields.io/npm/l/bitget-mcp-server.svg?style=flat-square" alt="license" /></a>
+  <a href="https://www.npmjs.com/package/bitget-mcp-server"><img src="https://img.shields.io/npm/v/bitget-mcp-server.svg?style=flat-square&color=cb3837" alt="MCP Server" /></a>
+  <a href="https://www.npmjs.com/package/bitget-client"><img src="https://img.shields.io/npm/v/bitget-client.svg?style=flat-square&color=0070f3" alt="CLI" /></a>
+  <a href="https://www.npmjs.com/package/bitget-core"><img src="https://img.shields.io/npm/v/bitget-core.svg?style=flat-square&color=6f42c1" alt="Core" /></a>
+  <a href="https://www.npmjs.com/package/bitget-skill"><img src="https://img.shields.io/npm/v/bitget-skill.svg?style=flat-square&color=28a745" alt="Skill" /></a>
   <a href="https://modelcontextprotocol.io"><img src="https://img.shields.io/badge/MCP-compatible-8A2BE2?style=flat-square" alt="MCP compatible" /></a>
-  <a href="https://www.bitget.com"><img src="https://img.shields.io/badge/Exchange-Bitget-00b897?style=flat-square" alt="Bitget" /></a>
-</p>
-
-<p align="center">
-  <a href="#quick-start">Quick Start</a> •
-  <a href="#available-modules">Modules</a> •
-  <a href="#tool-highlights">Tools</a> •
-  <a href="#configuration">Configuration</a> •
-  <a href="#security">Security</a>
+  <a href="LICENSE"><img src="https://img.shields.io/npm/l/bitget-mcp-server.svg?style=flat-square" alt="license" /></a>
 </p>
 
 ---
 
-## What is this?
+**Bitget Agent Hub** connects AI assistants and automation tools to the [Bitget](https://www.bitget.com) exchange. Two integration modes:
 
-A [Model Context Protocol (MCP)](https://modelcontextprotocol.io) server that gives AI assistants — **Cursor**, **Claude Desktop**, **Windsurf**, and others — direct access to the Bitget cryptocurrency exchange.
+- **MCP Server** — for Claude Code, Cursor, Codex, and any MCP-compatible AI
+- **CLI (`bgc`) + Skill** — for shell-based AI agents (Claude Code skills, OpenClaw)
 
-> **One config, 56+ tools.** Ask your AI to check prices, place trades, manage positions, and more.
-
----
-
-## Features
-
-| | Feature | Description |
-|---|---------|-------------|
-| **56+ tools** | Full API coverage | Spot, futures, margin, copy trading, convert, earn, P2P, broker |
-| **Read-only mode** | `--read-only` flag | Disable all write/trade operations for safe exploration |
-| **Module filtering** | `--modules` flag | Expose only the tools you need |
-| **Smart detection** | Dynamic capabilities | Unavailable modules auto-hidden from AI tool lists |
-| **Agent-first** | `system_get_capabilities` | Machine-readable capability discovery for agent planning |
-| **Rate limiting** | Token bucket | Client-side rate limiting per endpoint prevents API abuse |
-| **Auth** | HMAC-SHA256 | Industry-standard Bitget API authentication |
-| **Structured errors** | Error codes + suggestions | Machine-parseable errors with actionable suggestions |
+Once configured, your AI can check prices, query balances, place and cancel orders, manage futures positions, set leverage, and transfer funds — all through natural language.
 
 ---
 
-## Quick Start
+## Packages
 
-### Prerequisites
+| Package | What it does | Install |
+|---------|-------------|---------|
+| [`bitget-mcp-server`](packages/bitget-mcp/) | MCP server — integrates with Claude, Cursor, Codex | `npx -y bitget-mcp-server` |
+| [`bitget-client`](packages/bitget-client/) | CLI tool (`bgc`) — shell access to all 36 tools | `npm install -g bitget-client` |
+| [`bitget-skill`](packages/bitget-skill/) | Claude Code skill — AI uses `bgc` as a live API bridge | `npm install -g bitget-skill` |
+| [`bitget-core`](packages/bitget-core/) | Shared REST client and tool definitions | internal |
 
-- **Node.js** >= 18
-- A [**Bitget API key**](https://www.bitget.com/account/newapi) with appropriate permissions
+---
 
-### Installation
+## Get API Credentials
 
-Choose your AI client and copy the configuration:
+All integrations need a Bitget API key for private endpoints (account, trading). Public market data works without credentials.
 
-<details>
-<summary><strong>Cursor</strong></summary>
+1. Log in to [bitget.com](https://www.bitget.com) → **Settings → API Management**
+2. Create a new API key — select **Read** and/or **Trade** permissions
+3. Save your **API Key**, **Secret Key**, and **Passphrase**
 
-Add to `.cursor/mcp.json` in your project root:
+---
 
-```json
-{
-  "mcpServers": {
-    "bitget": {
-      "command": "npx",
-      "args": ["-y", "bitget-mcp-server", "--modules", "all"],
-      "env": {
-        "BITGET_API_KEY": "your-api-key",
-        "BITGET_SECRET_KEY": "your-secret-key",
-        "BITGET_PASSPHRASE": "your-passphrase"
-      }
-    }
-  }
-}
-```
+## MCP Server
 
-</details>
+Gives AI assistants direct access to 36 Bitget tools via the [Model Context Protocol](https://modelcontextprotocol.io).
 
-<details>
-<summary><strong>Claude Desktop</strong></summary>
-
-Add to your config file:
-- **macOS:** `~/Library/Application Support/Claude/claude_desktop_config.json`
-- **Windows:** `%APPDATA%\Claude\claude_desktop_config.json`
-
-```json
-{
-  "mcpServers": {
-    "bitget": {
-      "command": "npx",
-      "args": ["-y", "bitget-mcp-server", "--modules", "all"],
-      "env": {
-        "BITGET_API_KEY": "your-api-key",
-        "BITGET_SECRET_KEY": "your-secret-key",
-        "BITGET_PASSPHRASE": "your-passphrase"
-      }
-    }
-  }
-}
-```
-
-</details>
-
-<details>
-<summary><strong>Claude Code</strong></summary>
-
-Run in your terminal:
+### Claude Code
 
 ```bash
-claude mcp add \
-  --transport stdio \
+claude mcp add -s user \
   --env BITGET_API_KEY=your-api-key \
   --env BITGET_SECRET_KEY=your-secret-key \
   --env BITGET_PASSPHRASE=your-passphrase \
   bitget \
-  -- npx -y bitget-mcp-server --modules all
+  -- npx -y bitget-mcp-server
 ```
 
-Verify with `claude mcp list`.
+### Codex
 
-</details>
+Add to `~/.codex/config.toml` (or the project-level `codex.toml`):
 
-<details>
-<summary><strong>VS Code (Copilot)</strong></summary>
+```toml
+[[mcp_servers]]
+name = "bitget"
+command = "npx"
+args = ["-y", "bitget-mcp-server"]
 
-Add to `.vscode/mcp.json` in your project root:
+[mcp_servers.env]
+BITGET_API_KEY = "your-api-key"
+BITGET_SECRET_KEY = "your-secret-key"
+BITGET_PASSPHRASE = "your-passphrase"
+```
+
+### OpenClaw
+
+OpenClaw invokes MCP servers via its tool gateway. Add to your OpenClaw agent config:
 
 ```json
 {
-  "servers": {
+  "mcp_servers": {
     "bitget": {
       "command": "npx",
-      "args": ["-y", "bitget-mcp-server", "--modules", "all"],
+      "args": ["-y", "bitget-mcp-server"],
       "env": {
         "BITGET_API_KEY": "your-api-key",
         "BITGET_SECRET_KEY": "your-secret-key",
@@ -149,161 +100,114 @@ Add to `.vscode/mcp.json` in your project root:
 }
 ```
 
-Requires VS Code 1.102+ with Copilot.
+### Other clients (Claude Desktop, Cursor, VS Code Copilot, Windsurf)
 
-</details>
+→ See [docs/packages/bitget-mcp.md](docs/packages/bitget-mcp.md) for per-client config snippets.
 
-<details>
-<summary><strong>Windsurf</strong></summary>
+---
 
-Add to `~/.codeium/windsurf/mcp_config.json`:
+## CLI Tool (`bgc`)
 
-```json
-{
-  "mcpServers": {
-    "bitget": {
-      "command": "npx",
-      "args": ["-y", "bitget-mcp-server", "--modules", "all"],
-      "env": {
-        "BITGET_API_KEY": "your-api-key",
-        "BITGET_SECRET_KEY": "your-secret-key",
-        "BITGET_PASSPHRASE": "your-passphrase"
-      }
-    }
-  }
-}
-```
-
-</details>
-
-<details>
-<summary><strong>Other MCP Clients</strong></summary>
-
-For any MCP-compatible client, the server can be started with:
+A command-line interface for all 36 Bitget tools. Outputs JSON — ideal for scripting and AI agent shell use.
 
 ```bash
-BITGET_API_KEY=your-api-key \
-BITGET_SECRET_KEY=your-secret-key \
-BITGET_PASSPHRASE=your-passphrase \
-npx -y bitget-mcp-server --modules all
-```
+npm install -g bitget-client
 
-The server communicates over **stdio** — pipe stdin/stdout to your MCP client.
+export BITGET_API_KEY="your-api-key"
+export BITGET_SECRET_KEY="your-secret-key"
+export BITGET_PASSPHRASE="your-passphrase"
 
-</details>
+# Market data (no credentials needed)
+bgc spot spot_get_ticker --symbol BTCUSDT
+bgc futures futures_get_funding_rate --productType USDT-FUTURES --symbol BTCUSDT
 
-### Read-Only Mode
+# Account queries
+bgc account get_account_assets
+bgc futures futures_get_positions --productType USDT-FUTURES
 
-Append `--read-only` to disable all write/trade operations:
-
-```diff
-- "args": ["-y", "bitget-mcp-server", "--modules", "all"],
-+ "args": ["-y", "bitget-mcp-server", "--modules", "all", "--read-only"],
+# Trading (shows confirmation prompt first)
+bgc spot spot_place_order --orders '[{"symbol":"BTCUSDT","side":"buy","orderType":"limit","price":"95000","size":"0.01"}]'
 ```
 
 ---
 
-## Available Modules
+## Claude Code Skill
 
-| Module | Tools | Description |
-|:-------|:-----:|:------------|
-| `spot` | 13 | Spot market data + order placement & management |
-| `futures` | 14 | Futures market data + trading + leverage + positions |
-| `account` | 8 | Assets, transfers, withdrawals, deposits, sub-accounts |
-| `margin` | 7 | Cross/isolated margin trading, borrow & repay |
-| `copytrading` | 5 | Copy trading with auto trader selection |
-| `convert` | 3 | Coin conversion with real-time quoted prices |
-| `earn` | 3 | Savings & staking (auto-detected availability) |
-| `p2p` | 2 | P2P merchant list and order history |
-| `broker` | 3 | Broker account and API key management |
+The skill lets Claude Code autonomously call Bitget APIs by running `bgc` commands via the Bash tool — no server process required.
 
-> **Default:** `spot`, `futures`, `account`. Use `--modules all` to enable everything.
+```bash
+# 1. Install bgc
+npm install -g bitget-client
+
+# 2. Install skill (auto-copies to ~/.claude/skills/bitget-skill/)
+npm install -g bitget-skill
+
+# 3. Set credentials in your shell environment
+export BITGET_API_KEY="your-api-key"
+export BITGET_SECRET_KEY="your-secret-key"
+export BITGET_PASSPHRASE="your-passphrase"
+```
+
+After installation, Claude Code picks up the skill automatically. Try: *"查一下我的 BTC 仓位"* or *"What's the current BTC price?"*
+
+→ See [docs/packages/bitget-skill.md](docs/packages/bitget-skill.md) for details.
 
 ---
 
-## Tool Highlights
+## OpenClaw Automation
 
-### Market Data *(no auth required)*
+For OpenClaw webhook-triggered automation, use the `bgc` CLI directly in your action scripts:
 
-| Tool | Description |
-|:-----|:------------|
-| `spot_get_ticker` / `futures_get_ticker` | Real-time price and 24h stats |
-| `spot_get_depth` / `futures_get_depth` | Live order book |
-| `spot_get_candles` / `futures_get_candles` | K-line / candlestick data |
-| `futures_get_funding_rate` | Current and historical funding rates |
-| `futures_get_open_interest` | Open interest by symbol |
+```bash
+#!/bin/bash
+# Example: alert action that checks balance when triggered
+bgc account get_account_assets | jq '.data.data[] | select(.coin == "USDT")'
+```
 
-### Trading
-
-| Tool | Description |
-|:-----|:------------|
-| `spot_place_order` / `futures_place_order` | Place single or batch orders |
-| `spot_place_plan_order` | Trigger / stop-loss / take-profit orders |
-| `futures_set_leverage` | Adjust leverage per symbol |
-| `futures_get_positions` | View current open positions |
-
-### Account & Transfers
-
-| Tool | Description |
-|:-----|:------------|
-| `get_account_assets` | Balances across all account types |
-| `transfer` | Internal transfers between spot, futures, funding |
-| `get_deposit_address` | Generate deposit addresses |
-| `withdraw` | On-chain withdrawals |
-
-### Copy Trading
-
-| Tool | Description |
-|:-----|:------------|
-| `copy_get_traders` | Browse available elite traders |
-| `copy_place_order` | Follow a trader (auto-selects when `traderId` omitted) |
-
-### Agent Utilities
-
-| Tool | Description |
-|:-----|:------------|
-| `system_get_capabilities` | Full module availability snapshot for planning |
+Or use the MCP integration above to give your OpenClaw AI agent full Bitget tool access.
 
 ---
 
-## Configuration
+## Modules
 
-### CLI Options
+| Module | Tools | Loaded by default |
+|--------|:-----:|:-----------------:|
+| `spot` | 13 | ✅ |
+| `futures` | 14 | ✅ |
+| `account` | 8 | ✅ |
+| `margin` | 7 | — |
+| `copytrading` | 5 | — |
+| `convert` | 3 | — |
+| `earn` | 3 | — |
+| `p2p` | 2 | — |
+| `broker` | 3 | — |
 
-```
-bitget-mcp-server [options]
-
-  --modules <list>     Comma-separated modules (default: spot,futures,account)
-                       Use "all" to load all modules
-  --read-only          Disable all write/trade operations
-  --help               Show help
-  --version            Show version
-```
-
-### Environment Variables
-
-| Variable | Required | Description |
-|:---------|:---------|:------------|
-| `BITGET_API_KEY` | Yes * | Bitget API key |
-| `BITGET_SECRET_KEY` | Yes * | Bitget secret key |
-| `BITGET_PASSPHRASE` | Yes * | Bitget API passphrase |
-| `BITGET_API_BASE_URL` | No | API base URL (default: `https://api.bitget.com`) |
-| `BITGET_TIMEOUT_MS` | No | Request timeout in ms (default: `15000`) |
-
-> \* Required for private endpoints. Public market data tools work without auth.
+Default: `spot + futures + account` = 36 tools (fits within Cursor's 40-tool limit).
+Load everything: `--modules all`
 
 ---
 
 ## Security
 
-- API credentials are passed via **environment variables**, never hardcoded or logged
-- **`--read-only` mode** prevents all write operations at the server level
-- All private requests are signed with **HMAC-SHA256**
-- **Client-side rate limiting** prevents accidental API abuse
-- Structured error responses never leak credentials or internal state
+- Credentials via **environment variables only** — never hardcoded or logged
+- `--read-only` flag disables all write operations at server level
+- All authenticated requests signed with **HMAC-SHA256**
+- Client-side rate limiting prevents accidental API abuse
+- Write operations (orders, transfers) require explicit confirmation before execution
+
+---
+
+## Development
+
+```bash
+# Prerequisites: Node.js ≥ 18, pnpm ≥ 8
+pnpm install
+pnpm -r build
+pnpm -r test
+```
 
 ---
 
 ## License
 
-[MIT](./LICENSE)
+[MIT](LICENSE)

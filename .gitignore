@@ -27,3 +27,6 @@ npm-debug.log*
 
 # Cursor MCP config (contains credentials)
 .cursor/
+
+# OMC state and session files
+.omc/
