@@ -7,8 +7,8 @@ A [Claude Code skill](https://docs.anthropic.com/en/docs/claude-code) that gives
 | | |
 |---|---|
 | **npm** | `bitget-skill` |
-| **Skill file** | `~/.claude/skills/bitget.md` |
-| **References** | `~/.claude/skills/bitget-references/` |
+| **Skill file** | `~/.claude/skills/bitget-skill/SKILL.md` |
+| **References** | `~/.claude/skills/bitget-skill/references/` |
 | **Runtime** | `bgc` CLI (peer dependency) |
 | **Node.js** | ≥ 18 |
 | **Source** | `packages/bitget-skill/` |
@@ -46,15 +46,15 @@ npm install -g bitget-skill
 ```
 
 The `postinstall` script automatically copies the skill and reference files to:
-- `~/.claude/skills/bitget.md` — main skill file
-- `~/.claude/skills/bitget-references/commands.md` — full tool reference
-- `~/.claude/skills/bitget-references/auth-setup.md` — auth setup guide
-- `~/.claude/skills/bitget-references/error-codes.md` — error recovery guide
+- `~/.claude/skills/bitget-skill/SKILL.md` — main skill file
+- `~/.claude/skills/bitget-skill/references/commands.md` — full tool reference
+- `~/.claude/skills/bitget-skill/references/auth-setup.md` — auth setup guide
+- `~/.claude/skills/bitget-skill/references/error-codes.md` — error recovery guide
 
 Verify the installation:
 ```bash
-ls ~/.claude/skills/bitget.md
-ls ~/.claude/skills/bitget-references/
+ls ~/.claude/skills/bitget-skill/SKILL.md
+ls ~/.claude/skills/bitget-skill/references/
 ```
 
 ## Manual Installation
@@ -62,13 +62,13 @@ ls ~/.claude/skills/bitget-references/
 If the post-install script fails (e.g., permission issues), install manually:
 
 ```bash
-mkdir -p ~/.claude/skills/bitget-references
+mkdir -p ~/.claude/skills/bitget-skill/references
 
 # Find where the package was installed
 SKILL_DIR=$(npm root -g)/bitget-skill
 
-cp "$SKILL_DIR/skills/bitget.md" ~/.claude/skills/
-cp "$SKILL_DIR/references/"* ~/.claude/skills/bitget-references/
+cp "$SKILL_DIR/skills/SKILL.md" ~/.claude/skills/bitget-skill/
+cp "$SKILL_DIR/references/"* ~/.claude/skills/bitget-skill/references/
 ```
 
 ## Usage in Claude Code
@@ -139,7 +139,7 @@ The `gen-references.js` script reads tool definitions directly from `bitget-core
 ```
 packages/bitget-skill/
 ├── skills/
-│   └── bitget.md              # Main skill definition for Claude Code
+│   └── SKILL.md               # Main skill definition for Claude Code
 ├── references/
 │   ├── commands.md            # Auto-generated full tool reference
 │   ├── auth-setup.md          # Credential setup guide
@@ -190,7 +190,7 @@ Failures are non-fatal (warns but does not exit with error) to avoid breaking `n
 Install the CLI: `npm install -g bitget-client`
 
 **Skill not activating**
-Check the file exists: `ls ~/.claude/skills/bitget.md`
+Check the file exists: `ls ~/.claude/skills/bitget-skill/SKILL.md`
 If missing, run: `node $(npm root -g)/bitget-skill/scripts/install.js`
 
 **Commands reference is out of date**

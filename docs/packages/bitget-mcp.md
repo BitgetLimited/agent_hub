@@ -74,8 +74,7 @@ Create or edit `.cursor/mcp.json` in your project root:
 ### Claude Code (CLI)
 
 ```bash
-claude mcp add \
-  --transport stdio \
+claude mcp add -s user \
   --env BITGET_API_KEY=your-api-key \
   --env BITGET_SECRET_KEY=your-secret-key \
   --env BITGET_PASSPHRASE=your-passphrase \
@@ -84,6 +83,42 @@ claude mcp add \
 
 # Verify
 claude mcp list
+```
+
+### Codex
+
+Add to `~/.codex/config.toml` (global) or `codex.toml` in your project root:
+
+```toml
+[[mcp_servers]]
+name = "bitget"
+command = "npx"
+args = ["-y", "bitget-mcp-server", "--modules", "all"]
+
+[mcp_servers.env]
+BITGET_API_KEY = "your-api-key"
+BITGET_SECRET_KEY = "your-secret-key"
+BITGET_PASSPHRASE = "your-passphrase"
+```
+
+### OpenClaw
+
+Add to your OpenClaw agent config (JSON format):
+
+```json
+{
+  "mcp_servers": {
+    "bitget": {
+      "command": "npx",
+      "args": ["-y", "bitget-mcp-server", "--modules", "all"],
+      "env": {
+        "BITGET_API_KEY": "your-api-key",
+        "BITGET_SECRET_KEY": "your-secret-key",
+        "BITGET_PASSPHRASE": "your-passphrase"
+      }
+    }
+  }
+}
 ```
 
 ### VS Code (GitHub Copilot)
