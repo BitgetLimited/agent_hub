@@ -58,25 +58,23 @@ async function main(): Promise<void> {
     if (key === "pretty" || key === "read-only" || key === "help" || key === "version") continue;
     const next = allArgs[i + 1];
     if (next !== undefined && !next.startsWith("--")) {
-      // Coerce CLI string values to their natural types so number/boolean
+      // Coerce CLI string values to their natural types so boolean
       // validators in helpers.ts receive the correct types.
+      // Numbers and strings are left as strings — readNumber() handles coercion,
+      // which avoids misidentifying numeric orderIds as number type.
       if (next === "true") {
         toolArgs[key] = true;
       } else if (next === "false") {
         toolArgs[key] = false;
-      } else if (next !== "" && !Number.isNaN(Number(next))) {
-        toolArgs[key] = Number(next);
-      } else {
-        // Try to parse JSON strings (e.g. --orders '[{...}]')
-        if (next.startsWith("[") || next.startsWith("{")) {
-          try {
-            toolArgs[key] = JSON.parse(next);
-          } catch {
-            toolArgs[key] = next;
-          }
-        } else {
+      } else if (next.startsWith("[") || next.startsWith("{")) {
+        // Try to parse JSON arrays/objects (e.g. --orders '[{...}]')
+        try {
+          toolArgs[key] = JSON.parse(next);
+        } catch {
           toolArgs[key] = next;
         }
+      } else {
+        toolArgs[key] = next;
       }
       i++;
     } else {

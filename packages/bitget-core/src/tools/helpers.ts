@@ -29,6 +29,9 @@ export function readNumber(
   if (value === undefined || value === null) {
     return undefined;
   }
+  if (typeof value === "string" && value !== "" && !Number.isNaN(Number(value))) {
+    return Number(value);
+  }
   if (typeof value !== "number" || Number.isNaN(value)) {
     throw new ValidationError(`Parameter "${key}" must be a number.`);
   }
