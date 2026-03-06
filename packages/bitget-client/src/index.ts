@@ -58,7 +58,17 @@ async function main(): Promise<void> {
     if (key === "pretty" || key === "read-only" || key === "help" || key === "version") continue;
     const next = allArgs[i + 1];
     if (next !== undefined && !next.startsWith("--")) {
-      toolArgs[key] = next;
+      // Coerce CLI string values to their natural types so number/boolean
+      // validators in helpers.ts receive the correct types.
+      if (next === "true") {
+        toolArgs[key] = true;
+      } else if (next === "false") {
+        toolArgs[key] = false;
+      } else if (next !== "" && !Number.isNaN(Number(next))) {
+        toolArgs[key] = Number(next);
+      } else {
+        toolArgs[key] = next;
+      }
       i++;
     } else {
       toolArgs[key] = true;

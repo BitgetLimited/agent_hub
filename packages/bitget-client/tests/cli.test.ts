@@ -102,5 +102,15 @@ describe("bgc CLI", () => {
       expect(output.data.length).toBeGreaterThan(0);
       expect(output.data[0]).toHaveProperty("symbol", "BTCUSDT");
     });
+
+    it("numeric --limit parameter is parsed as number, not string", async () => {
+      const result = await runCliAsync(
+        ["spot", "spot_get_trades", "--symbol", "BTCUSDT", "--limit", "5"],
+        { BITGET_API_BASE_URL: baseUrl, BITGET_TIMEOUT_MS: "5000" },
+      );
+      expect(result.exitCode).toBe(0);
+      const output = JSON.parse(result.stdout);
+      expect(output).toHaveProperty("data");
+    });
   });
 });
