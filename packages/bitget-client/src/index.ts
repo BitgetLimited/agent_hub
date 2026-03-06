@@ -67,7 +67,16 @@ async function main(): Promise<void> {
       } else if (next !== "" && !Number.isNaN(Number(next))) {
         toolArgs[key] = Number(next);
       } else {
-        toolArgs[key] = next;
+        // Try to parse JSON strings (e.g. --orders '[{...}]')
+        if (next.startsWith("[") || next.startsWith("{")) {
+          try {
+            toolArgs[key] = JSON.parse(next);
+          } catch {
+            toolArgs[key] = next;
+          }
+        } else {
+          toolArgs[key] = next;
+        }
       }
       i++;
     } else {
