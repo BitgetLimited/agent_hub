@@ -8,6 +8,12 @@ importers:
 
   .: {}
 
+  packages/bitget-agent-account-skill:
+    devDependencies:
+      bitget-core:
+        specifier: workspace:*
+        version: link:../bitget-core
+
   packages/bitget-client:
     dependencies:
       bitget-core:
