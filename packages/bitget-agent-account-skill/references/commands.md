@@ -1,8 +1,9 @@
 # bgc Command Reference — Agent Account
 
-Agent-safe subset of bgc commands. The following operations are excluded
-intentionally: `transfer`, `withdraw`, `manage_subaccounts` — your virtual
-sub-account API key has no permission for these.
+Auto-generated from bitget-core tool definitions (agent-safe subset).
+
+Excluded: `transfer`, `withdraw`, `manage_subaccounts` — virtual sub-account
+API key has no permission for these operations.
 
 ## Usage
 
@@ -12,13 +13,11 @@ bgc <module> <tool_name> [--param value ...]
 
 ## Table of Contents
 
-- [spot](#module-spot) — spot_get_ticker, spot_get_depth, spot_get_candles, spot_place_order, spot_place_plan_order, spot_get_orders, spot_cancel_orders, spot_get_fills
-- [futures](#module-futures) — futures_get_ticker, futures_get_depth, futures_get_candles, futures_get_funding_rate, futures_get_open_interest, futures_place_order, futures_set_leverage, futures_get_positions, futures_get_orders, futures_cancel_orders, futures_get_fills
-- [account](#module-account) — get_account_assets
+- [spot](#module-spot) — spot_get_ticker, spot_get_depth, spot_get_candles, spot_get_trades, spot_get_symbols, spot_place_order, spot_cancel_orders, spot_modify_order, spot_get_orders, spot_get_fills, spot_place_plan_order, spot_get_plan_orders, spot_cancel_plan_orders
+- [futures](#module-futures) — futures_get_ticker, futures_get_depth, futures_get_candles, futures_get_trades, futures_get_contracts, futures_get_funding_rate, futures_get_open_interest, futures_place_order, futures_cancel_orders, futures_get_orders, futures_get_fills, futures_get_positions, futures_set_leverage, futures_update_config
+- [account](#module-account) — get_account_assets, get_account_bills
 
 > **Write operations** (marked ✏️) require user confirmation before execution.
-
----
 
 ## Module: spot
 
@@ -36,10 +35,8 @@ Get real-time ticker data for spot trading pair(s). Public endpoint. Rate limit:
 
 **Example:**
 ```bash
-bgc spot spot_get_ticker --symbol BTCUSDT
+bgc spot spot_get_ticker --symbol <value>
 ```
-
----
 
 ### `spot_get_depth`
 
@@ -57,10 +54,8 @@ Get orderbook depth for a spot trading pair. Public endpoint. Rate limit: 20 req
 
 **Example:**
 ```bash
-bgc spot spot_get_depth --symbol BTCUSDT
+bgc spot spot_get_depth --symbol <value> --type <value>
 ```
-
----
 
 ### `spot_get_candles`
 
@@ -73,17 +68,54 @@ Get K-line data for spot trading pair. Public endpoint. Rate limit: 20 req/s per
 | Name | Type | Required | Description |
 |------|------|----------|-------------|
 | `symbol` | string | Yes | Trading pair symbol, e.g. BTCUSDT |
-| `granularity` | string | Yes | Candlestick period: 1min, 5min, 15min, 30min, 1h, 4h, 6h, 12h, 1day, 3day, 1week, 1M |
+| `granularity` | string | Yes | Candlestick period. |
 | `startTime` | string | No | Start time in milliseconds. |
 | `endTime` | string | No | End time in milliseconds. |
 | `limit` | number | No | Result size, default 100, max 1000. |
 
 **Example:**
 ```bash
-bgc spot spot_get_candles --symbol BTCUSDT --granularity 1h
+bgc spot spot_get_candles --symbol <value> --granularity <value>
 ```
 
----
+### `spot_get_trades`
+
+Get recent or historical trade records for spot symbol. Public endpoint. Rate limit: 10 req/s per IP.
+
+**Write operation:** No
+
+**Parameters:**
+
+| Name | Type | Required | Description |
+|------|------|----------|-------------|
+| `symbol` | string | Yes | Trading pair symbol. |
+| `limit` | number | No | Result size, default 100, max 500. |
+| `startTime` | string | No | Start time in milliseconds. |
+| `endTime` | string | No | End time in milliseconds. |
+
+**Example:**
+```bash
+bgc spot spot_get_trades --symbol <value> --limit <value>
+```
+
+### `spot_get_symbols`
+
+Get spot symbol info or coin chain info. Public endpoint. Rate limit: 20 req/s per IP.
+
+**Write operation:** No
+
+**Parameters:**
+
+| Name | Type | Required | Description |
+|------|------|----------|-------------|
+| `type` | string | No | symbols(default) or coins. |
+| `symbol` | string | No | Specific symbol filter. |
+| `coin` | string | No | Specific coin filter. |
+
+**Example:**
+```bash
+bgc spot spot_get_symbols --type <value> --symbol <value>
+```
 
 ### `spot_place_order` ✏️
 
@@ -95,76 +127,16 @@ Place one or more spot orders. [CAUTION] Executes real trades. Private endpoint.
 
 | Name | Type | Required | Description |
 |------|------|----------|-------------|
-| `orders` | array | Yes | Array of order objects. Pass as JSON array. |
-
-Order object fields:
-
-| Field | Type | Required | Description |
-|-------|------|----------|-------------|
-| `symbol` | string | Yes | e.g. BTCUSDT |
-| `side` | string | Yes | buy or sell |
-| `orderType` | string | Yes | limit or market |
-| `price` | string | No | Required for limit orders, e.g. "70000" |
-| `size` | string | Yes | Quantity as string, e.g. "0.001" |
+| `orders` | array | Yes | Array of order objects. Single order should still be passed as an array with one item. |
 
 **Example:**
 ```bash
-bgc spot spot_place_order --orders '[{"symbol":"BTCUSDT","side":"buy","orderType":"limit","price":"70000","size":"0.001"}]'
+bgc spot spot_place_order --orders <value>
 ```
-
----
-
-### `spot_place_plan_order` ✏️
-
-Create a trigger/conditional order (stop-loss, take-profit). Private endpoint. Rate limit: 10 req/s per UID.
-
-**Write operation:** Yes — confirm with user before running
-
-**Parameters:**
-
-| Name | Type | Required | Description |
-|------|------|----------|-------------|
-| `triggerPrice` | string | Yes | Price that activates the order |
-| `symbol` | string | Yes | Trading pair symbol |
-| `side` | string | Yes | buy or sell |
-| `orderType` | string | Yes | limit or market (execution type after trigger) |
-| `size` | string | Yes | Quantity |
-| `price` | string | No | Execution price for limit type |
-| `triggerType` | string | No | mark_price, fill_price, or last_price (default) |
-
-**Example:**
-```bash
-bgc spot spot_place_plan_order --symbol BTCUSDT --side sell --triggerPrice 68000 --orderType market --size 0.001
-```
-
----
-
-### `spot_get_orders`
-
-Query open or historical spot orders. Private endpoint. Rate limit: 10 req/s per UID.
-
-**Write operation:** No
-
-**Parameters:**
-
-| Name | Type | Required | Description |
-|------|------|----------|-------------|
-| `status` | string | No | open (default) or history |
-| `symbol` | string | No | Filter by trading pair |
-| `orderId` | string | No | Specific order id |
-| `limit` | number | No | Result size, default 100 |
-
-**Example:**
-```bash
-bgc spot spot_get_orders --status open
-bgc spot spot_get_orders --status history --symbol BTCUSDT
-```
-
----
 
 ### `spot_cancel_orders` ✏️
 
-Cancel one or more spot orders. Private endpoint. Rate limit: 10 req/s per UID.
+Cancel one or more spot orders by id, batch ids, or symbol-wide cancel. Private endpoint. Rate limit: 10 req/s per UID.
 
 **Write operation:** Yes — confirm with user before running
 
@@ -172,22 +144,40 @@ Cancel one or more spot orders. Private endpoint. Rate limit: 10 req/s per UID.
 
 | Name | Type | Required | Description |
 |------|------|----------|-------------|
-| `symbol` | string | Yes | Trading pair symbol |
-| `orderId` | string | No | Single order id |
-| `orderIds` | array | No | Multiple order ids (max 50) |
-| `cancelAll` | boolean | No | If true, cancel all open orders for symbol |
+| `symbol` | string | Yes | Trading pair symbol. |
+| `orderId` | string | No | Single order id. |
+| `orderIds` | array | No | Multiple order ids. Max 50. |
+| `cancelAll` | boolean | No | If true, cancel all open orders for symbol. |
 
 **Example:**
 ```bash
-bgc spot spot_cancel_orders --symbol BTCUSDT --orderId 1234567890
-bgc spot spot_cancel_orders --symbol BTCUSDT --cancelAll true
+bgc spot spot_cancel_orders --symbol <value> --orderId <value>
 ```
 
----
+### `spot_modify_order` ✏️
 
-### `spot_get_fills`
+Cancel and replace a spot order atomically. Private endpoint. Rate limit: 10 req/s per UID.
 
-Get spot fill/execution details. Private endpoint. Rate limit: 10 req/s per UID.
+**Write operation:** Yes — confirm with user before running
+
+**Parameters:**
+
+| Name | Type | Required | Description |
+|------|------|----------|-------------|
+| `symbol` | string | Yes | Trading pair symbol. |
+| `orderId` | string | Yes | Original order id. |
+| `newPrice` | string | No | New price for limit order. |
+| `newSize` | string | No | New order size. |
+| `newClientOid` | string | No | New client order id. |
+
+**Example:**
+```bash
+bgc spot spot_modify_order --symbol <value> --orderId <value>
+```
+
+### `spot_get_orders`
+
+Query spot order detail, open orders, or history orders. Private endpoint. Rate limit: 10 req/s per UID.
 
 **Write operation:** No
 
@@ -195,22 +185,109 @@ Get spot fill/execution details. Private endpoint. Rate limit: 10 req/s per UID.
 
 | Name | Type | Required | Description |
 |------|------|----------|-------------|
-| `symbol` | string | Yes | Trading pair symbol |
-| `orderId` | string | No | Filter by order id |
-| `limit` | number | No | Result size, default 100 |
+| `orderId` | string | No | Specific order id. |
+| `symbol` | string | No | Trading pair filter. |
+| `status` | string | No | open(default) or history. |
+| `startTime` | string | No | Start time in milliseconds. |
+| `endTime` | string | No | End time in milliseconds. |
+| `limit` | number | No | Result size, default 100. |
+| `idLessThan` | string | No | Pagination cursor. |
 
 **Example:**
 ```bash
-bgc spot spot_get_fills --symbol BTCUSDT
+bgc spot spot_get_orders --orderId <value> --symbol <value>
 ```
 
----
+### `spot_get_fills`
+
+Get spot fills for order execution details. Private endpoint. Rate limit: 10 req/s per UID.
+
+**Write operation:** No
+
+**Parameters:**
+
+| Name | Type | Required | Description |
+|------|------|----------|-------------|
+| `symbol` | string | Yes | Trading pair symbol. |
+| `orderId` | string | No | Specific order id. |
+| `startTime` | string | No | Start time in milliseconds. |
+| `endTime` | string | No | End time in milliseconds. |
+| `limit` | number | No | Result size, default 100. |
+
+**Example:**
+```bash
+bgc spot spot_get_fills --symbol <value> --orderId <value>
+```
+
+### `spot_place_plan_order` ✏️
+
+Create or modify spot plan order (trigger order). Private endpoint. Rate limit: 10 req/s per UID.
+
+**Write operation:** Yes — confirm with user before running
+
+**Parameters:**
+
+| Name | Type | Required | Description |
+|------|------|----------|-------------|
+| `orderId` | string | No | When provided, modify existing plan order. |
+| `symbol` | string | No | Trading pair symbol. |
+| `side` | string | No | Order side. |
+| `triggerPrice` | string | Yes | Trigger price. |
+| `triggerType` | string | No | Trigger source. |
+| `orderType` | string | No | Execution order type. |
+| `price` | string | No | Execution price for limit orders. |
+| `size` | string | No | Order quantity. |
+
+**Example:**
+```bash
+bgc spot spot_place_plan_order --orderId <value> --symbol <value>
+```
+
+### `spot_get_plan_orders`
+
+Get current or historical spot plan orders. Private endpoint. Rate limit: 10 req/s per UID.
+
+**Write operation:** No
+
+**Parameters:**
+
+| Name | Type | Required | Description |
+|------|------|----------|-------------|
+| `symbol` | string | Yes | Trading pair symbol. |
+| `status` | string | No | current(default) or history. |
+| `startTime` | string | No | Start time in milliseconds. |
+| `endTime` | string | No | End time in milliseconds. |
+| `limit` | number | No | Result size, default 100. |
+
+**Example:**
+```bash
+bgc spot spot_get_plan_orders --symbol <value> --status <value>
+```
+
+### `spot_cancel_plan_orders` ✏️
+
+Cancel one or multiple spot plan orders. Private endpoint. Rate limit: 10 req/s per UID.
+
+**Write operation:** Yes — confirm with user before running
+
+**Parameters:**
+
+| Name | Type | Required | Description |
+|------|------|----------|-------------|
+| `orderId` | string | No | Single plan order id. |
+| `orderIds` | array | No | Multiple plan order ids. |
+| `symbol` | string | No | Cancel all plan orders for symbol. |
+
+**Example:**
+```bash
+bgc spot spot_cancel_plan_orders --orderId <value> --orderIds <value>
+```
 
 ## Module: futures
 
 ### `futures_get_ticker`
 
-Get futures ticker. Public endpoint. Rate limit: 20 req/s per IP.
+Get futures ticker for one symbol or all symbols in product type. Public endpoint. Rate limit: 20 req/s per IP.
 
 **Write operation:** No
 
@@ -218,19 +295,17 @@ Get futures ticker. Public endpoint. Rate limit: 20 req/s per IP.
 
 | Name | Type | Required | Description |
 |------|------|----------|-------------|
-| `productType` | string | Yes | USDT-FUTURES, USDC-FUTURES, or COIN-FUTURES |
-| `symbol` | string | No | Contract symbol, e.g. BTCUSDT |
+| `productType` | string | Yes | Futures product type. |
+| `symbol` | string | No | Contract symbol, e.g. BTCUSDT. |
 
 **Example:**
 ```bash
-bgc futures futures_get_ticker --productType USDT-FUTURES --symbol BTCUSDT
+bgc futures futures_get_ticker --productType <value> --symbol <value>
 ```
-
----
 
 ### `futures_get_depth`
 
-Get futures orderbook depth. Public endpoint. Rate limit: 20 req/s per IP.
+Get futures orderbook depth with precision levels. Public endpoint. Rate limit: 20 req/s per IP.
 
 **Write operation:** No
 
@@ -238,20 +313,19 @@ Get futures orderbook depth. Public endpoint. Rate limit: 20 req/s per IP.
 
 | Name | Type | Required | Description |
 |------|------|----------|-------------|
-| `productType` | string | Yes | USDT-FUTURES, USDC-FUTURES, or COIN-FUTURES |
-| `symbol` | string | Yes | Contract symbol |
-| `limit` | number | No | Depth levels, default 100 |
+| `productType` | string | Yes |  |
+| `symbol` | string | Yes | Contract symbol. |
+| `limit` | number | No | Depth levels, default 100. |
+| `precision` | string | No | Merge precision value. |
 
 **Example:**
 ```bash
-bgc futures futures_get_depth --productType USDT-FUTURES --symbol BTCUSDT
+bgc futures futures_get_depth --productType <value> --symbol <value>
 ```
-
----
 
 ### `futures_get_candles`
 
-Get futures K-line data. Public endpoint. Rate limit: 20 req/s per IP.
+Get futures candles from trade/index/mark price sources. Public endpoint. Rate limit: 20 req/s per IP.
 
 **Write operation:** No
 
@@ -259,21 +333,61 @@ Get futures K-line data. Public endpoint. Rate limit: 20 req/s per IP.
 
 | Name | Type | Required | Description |
 |------|------|----------|-------------|
-| `productType` | string | Yes | USDT-FUTURES, USDC-FUTURES, or COIN-FUTURES |
-| `symbol` | string | Yes | Contract symbol |
-| `granularity` | string | Yes | 1min, 5min, 15min, 30min, 1h, 4h, 6h, 12h, 1day, 3day, 1week, 1M |
-| `priceType` | string | No | trade (default), index, or mark |
+| `productType` | string | Yes |  |
+| `symbol` | string | Yes |  |
+| `granularity` | string | Yes |  |
+| `priceType` | string | No | trade(default), index, or mark. |
+| `startTime` | string | No |  |
+| `endTime` | string | No |  |
+| `limit` | number | No |  |
 
 **Example:**
 ```bash
-bgc futures futures_get_candles --productType USDT-FUTURES --symbol BTCUSDT --granularity 1h
+bgc futures futures_get_candles --productType <value> --symbol <value>
 ```
 
----
+### `futures_get_trades`
+
+Get recent or historical futures trade records. Public endpoint. Rate limit: 10 req/s per IP.
+
+**Write operation:** No
+
+**Parameters:**
+
+| Name | Type | Required | Description |
+|------|------|----------|-------------|
+| `productType` | string | Yes |  |
+| `symbol` | string | Yes |  |
+| `limit` | number | No |  |
+| `startTime` | string | No |  |
+| `endTime` | string | No |  |
+
+**Example:**
+```bash
+bgc futures futures_get_trades --productType <value> --symbol <value>
+```
+
+### `futures_get_contracts`
+
+Get futures contract configuration details. Public endpoint. Rate limit: 20 req/s per IP.
+
+**Write operation:** No
+
+**Parameters:**
+
+| Name | Type | Required | Description |
+|------|------|----------|-------------|
+| `productType` | string | Yes |  |
+| `symbol` | string | No | Optional symbol filter. |
+
+**Example:**
+```bash
+bgc futures futures_get_contracts --productType <value> --symbol <value>
+```
 
 ### `futures_get_funding_rate`
 
-Get current or historical funding rate. Public endpoint. Rate limit: 20 req/s per IP.
+Get current or historical funding rates for a futures symbol. Public endpoint. Rate limit: 20 req/s per IP.
 
 **Write operation:** No
 
@@ -281,20 +395,20 @@ Get current or historical funding rate. Public endpoint. Rate limit: 20 req/s pe
 
 | Name | Type | Required | Description |
 |------|------|----------|-------------|
-| `productType` | string | Yes | USDT-FUTURES, USDC-FUTURES, or COIN-FUTURES |
-| `symbol` | string | Yes | Contract symbol |
-| `history` | boolean | No | true for historical rates |
+| `productType` | string | Yes |  |
+| `symbol` | string | Yes |  |
+| `history` | boolean | No | true for historical funding rates. |
+| `pageSize` | number | No | Page size for history mode. |
+| `pageNo` | number | No | Page number for history mode. |
 
 **Example:**
 ```bash
-bgc futures futures_get_funding_rate --productType USDT-FUTURES --symbol BTCUSDT
+bgc futures futures_get_funding_rate --productType <value> --symbol <value>
 ```
-
----
 
 ### `futures_get_open_interest`
 
-Get open interest for a contract. Public endpoint. Rate limit: 20 req/s per IP.
+Get open interest for a futures contract. Public endpoint. Rate limit: 20 req/s per IP.
 
 **Write operation:** No
 
@@ -302,19 +416,17 @@ Get open interest for a contract. Public endpoint. Rate limit: 20 req/s per IP.
 
 | Name | Type | Required | Description |
 |------|------|----------|-------------|
-| `productType` | string | Yes | USDT-FUTURES, USDC-FUTURES, or COIN-FUTURES |
-| `symbol` | string | Yes | Contract symbol |
+| `productType` | string | Yes |  |
+| `symbol` | string | Yes |  |
 
 **Example:**
 ```bash
-bgc futures futures_get_open_interest --productType USDT-FUTURES --symbol BTCUSDT
+bgc futures futures_get_open_interest --productType <value> --symbol <value>
 ```
-
----
 
 ### `futures_place_order` ✏️
 
-Place one or more futures orders. [CAUTION] Executes real trades. Private endpoint. Rate limit: 10 req/s per UID.
+Place one or more futures orders with optional TP/SL. [CAUTION] Executes real trades. Private endpoint. Rate limit: 10 req/s per UID.
 
 **Write operation:** Yes — confirm with user before running
 
@@ -322,96 +434,16 @@ Place one or more futures orders. [CAUTION] Executes real trades. Private endpoi
 
 | Name | Type | Required | Description |
 |------|------|----------|-------------|
-| `orders` | array | Yes | Array of futures order objects |
-
-Order object fields:
-
-| Field | Type | Required | Description |
-|-------|------|----------|-------------|
-| `productType` | string | Yes | USDT-FUTURES, USDC-FUTURES, or COIN-FUTURES |
-| `symbol` | string | Yes | Contract symbol, e.g. BTCUSDT |
-| `side` | string | Yes | buy or sell |
-| `tradeSide` | string | Yes | open or close |
-| `orderType` | string | Yes | limit or market |
-| `size` | string | Yes | Quantity as string |
-| `price` | string | No | Required for limit orders |
-| `marginCoin` | string | Yes | e.g. USDT |
+| `orders` | array | Yes | Array of futures order objects. |
 
 **Example:**
 ```bash
-bgc futures futures_place_order --orders '[{"productType":"USDT-FUTURES","symbol":"BTCUSDT","side":"buy","tradeSide":"open","orderType":"limit","price":"70000","size":"0.001","marginCoin":"USDT"}]'
+bgc futures futures_place_order --orders <value>
 ```
-
----
-
-### `futures_set_leverage` ✏️
-
-Set leverage for a futures position. [CAUTION] Affects risk. Private endpoint. Rate limit: 5 req/s per UID.
-
-**Write operation:** Yes — confirm with user before running
-
-**Parameters:**
-
-| Name | Type | Required | Description |
-|------|------|----------|-------------|
-| `productType` | string | Yes | USDT-FUTURES, USDC-FUTURES, or COIN-FUTURES |
-| `symbol` | string | Yes | Contract symbol |
-| `marginCoin` | string | Yes | e.g. USDT |
-| `leverage` | string | Yes | Leverage as string, e.g. "5". Max 10x per risk rules. |
-| `holdSide` | string | No | long or short (for one-way mode, omit) |
-
-**Example:**
-```bash
-bgc futures futures_set_leverage --productType USDT-FUTURES --symbol BTCUSDT --marginCoin USDT --leverage 5
-```
-
----
-
-### `futures_get_positions`
-
-Get current open futures positions. Private endpoint. Rate limit: 10 req/s per UID.
-
-**Write operation:** No
-
-**Parameters:**
-
-| Name | Type | Required | Description |
-|------|------|----------|-------------|
-| `productType` | string | Yes | USDT-FUTURES, USDC-FUTURES, or COIN-FUTURES |
-| `symbol` | string | No | Filter by contract |
-| `history` | boolean | No | true for closed position history |
-
-**Example:**
-```bash
-bgc futures futures_get_positions --productType USDT-FUTURES
-```
-
----
-
-### `futures_get_orders`
-
-Query open or historical futures orders. Private endpoint. Rate limit: 10 req/s per UID.
-
-**Write operation:** No
-
-**Parameters:**
-
-| Name | Type | Required | Description |
-|------|------|----------|-------------|
-| `productType` | string | Yes | USDT-FUTURES, USDC-FUTURES, or COIN-FUTURES |
-| `status` | string | No | open or history |
-| `symbol` | string | No | Filter by contract |
-
-**Example:**
-```bash
-bgc futures futures_get_orders --productType USDT-FUTURES --status open
-```
-
----
 
 ### `futures_cancel_orders` ✏️
 
-Cancel futures orders. Private endpoint. Rate limit: 10 req/s per UID.
+Cancel futures orders by order id, batch ids, or cancel-all mode. Private endpoint. Rate limit: 10 req/s per UID.
 
 **Write operation:** Yes — confirm with user before running
 
@@ -419,21 +451,21 @@ Cancel futures orders. Private endpoint. Rate limit: 10 req/s per UID.
 
 | Name | Type | Required | Description |
 |------|------|----------|-------------|
-| `productType` | string | Yes | USDT-FUTURES, USDC-FUTURES, or COIN-FUTURES |
-| `symbol` | string | Yes | Contract symbol |
-| `orderId` | string | No | Single order id |
-| `cancelAll` | boolean | No | If true, cancel all open orders for symbol |
+| `productType` | string | Yes |  |
+| `symbol` | string | Yes |  |
+| `orderId` | string | No |  |
+| `orderIds` | array | No |  |
+| `cancelAll` | boolean | No |  |
+| `marginCoin` | string | No |  |
 
 **Example:**
 ```bash
-bgc futures futures_cancel_orders --productType USDT-FUTURES --symbol BTCUSDT --orderId 1234567890
+bgc futures futures_cancel_orders --productType <value> --symbol <value>
 ```
 
----
+### `futures_get_orders`
 
-### `futures_get_fills`
-
-Get futures fill/execution details. Private endpoint. Rate limit: 10 req/s per UID.
+Query futures orders by id, open status, or history. Private endpoint. Rate limit: 10 req/s per UID.
 
 **Write operation:** No
 
@@ -441,22 +473,109 @@ Get futures fill/execution details. Private endpoint. Rate limit: 10 req/s per U
 
 | Name | Type | Required | Description |
 |------|------|----------|-------------|
-| `productType` | string | Yes | USDT-FUTURES, USDC-FUTURES, or COIN-FUTURES |
-| `symbol` | string | No | Filter by contract |
-| `orderId` | string | No | Filter by order id |
+| `productType` | string | Yes |  |
+| `orderId` | string | No |  |
+| `symbol` | string | No |  |
+| `status` | string | No |  |
+| `startTime` | string | No |  |
+| `endTime` | string | No |  |
+| `limit` | number | No |  |
 
 **Example:**
 ```bash
-bgc futures futures_get_fills --productType USDT-FUTURES
+bgc futures futures_get_orders --productType <value> --orderId <value>
 ```
 
----
+### `futures_get_fills`
+
+Get futures fills and fill history records. Private endpoint. Rate limit: 10 req/s per UID.
+
+**Write operation:** No
+
+**Parameters:**
+
+| Name | Type | Required | Description |
+|------|------|----------|-------------|
+| `productType` | string | Yes |  |
+| `symbol` | string | No |  |
+| `orderId` | string | No |  |
+| `startTime` | string | No |  |
+| `endTime` | string | No |  |
+| `limit` | number | No |  |
+
+**Example:**
+```bash
+bgc futures futures_get_fills --productType <value> --symbol <value>
+```
+
+### `futures_get_positions`
+
+Get current or historical futures positions. Private endpoint. Rate limit: 10 req/s per UID.
+
+**Write operation:** No
+
+**Parameters:**
+
+| Name | Type | Required | Description |
+|------|------|----------|-------------|
+| `productType` | string | Yes |  |
+| `symbol` | string | No |  |
+| `marginCoin` | string | No |  |
+| `history` | boolean | No |  |
+
+**Example:**
+```bash
+bgc futures futures_get_positions --productType <value> --symbol <value>
+```
+
+### `futures_set_leverage` ✏️
+
+Set futures leverage for symbol and margin coin. [CAUTION] Affects risk exposure. Private endpoint. Rate limit: 5 req/s per UID.
+
+**Write operation:** Yes — confirm with user before running
+
+**Parameters:**
+
+| Name | Type | Required | Description |
+|------|------|----------|-------------|
+| `productType` | string | Yes |  |
+| `symbol` | string | Yes |  |
+| `marginCoin` | string | Yes |  |
+| `leverage` | string | Yes |  |
+| `holdSide` | string | No |  |
+
+**Example:**
+```bash
+bgc futures futures_set_leverage --productType <value> --symbol <value>
+```
+
+### `futures_update_config` ✏️
+
+Update futures margin mode, position mode, or auto-margin setting. [CAUTION] Affects trading behavior. Private endpoint. Rate limit: 5 req/s per UID.
+
+**Write operation:** Yes — confirm with user before running
+
+**Parameters:**
+
+| Name | Type | Required | Description |
+|------|------|----------|-------------|
+| `productType` | string | Yes |  |
+| `symbol` | string | Yes |  |
+| `marginCoin` | string | Yes |  |
+| `setting` | string | Yes |  |
+| `value` | string | Yes |  |
+| `holdSide` | string | No |  |
+
+**Example:**
+```bash
+bgc futures futures_update_config --productType <value> --symbol <value>
+```
 
 ## Module: account
 
 ### `get_account_assets`
 
-Get spot/futures/funding account balances. Private endpoint. Rate limit: 10 req/s per UID.
+Get spot/futures/funding/all account balances. Private endpoint. Rate limit: 10 req/s per UID.
 
 **Write operation:** No
 
@@ -464,28 +583,34 @@ Get spot/futures/funding account balances. Private endpoint. Rate limit: 10 req/
 
 | Name | Type | Required | Description |
 |------|------|----------|-------------|
-| `accountType` | string | No | spot, futures, funding, or all (default) |
-| `coin` | string | No | Filter by coin |
-| `productType` | string | No | Required when accountType=futures |
+| `accountType` | string | No | Target account type. Default all. |
+| `coin` | string | No | Optional coin filter. |
+| `productType` | string | No | Required when accountType=futures. |
 
 **Example:**
 ```bash
-bgc account get_account_assets
-bgc account get_account_assets --accountType spot --coin USDT
+bgc account get_account_assets --accountType <value> --coin <value>
 ```
 
----
+### `get_account_bills`
 
-## Excluded commands
+Get account bill records for spot or futures account. Private endpoint. Rate limit: 10 req/s per UID.
 
-The following commands are NOT available in this skill. Your virtual sub-account
-API key has no permission for these operations. Do not attempt to call them.
+**Write operation:** No
 
-| Command | Reason excluded |
-|---------|----------------|
-| `transfer` | Sub-account has no transfer permission. User controls all fund movements. |
-| `withdraw` | Sub-account has no withdrawal permission by design (core security guarantee). |
-| `manage_subaccounts` | Not relevant to agent trading operations. |
+**Parameters:**
 
-If `withdraw` appears to be callable, warn the user immediately — they may be
-using a main-account API key. Recommend switching to a virtual sub-account key.
+| Name | Type | Required | Description |
+|------|------|----------|-------------|
+| `accountType` | string | No |  |
+| `coin` | string | No |  |
+| `productType` | string | No |  |
+| `businessType` | string | No |  |
+| `startTime` | string | No |  |
+| `endTime` | string | No |  |
+| `limit` | number | No |  |
+
+**Example:**
+```bash
+bgc account get_account_bills --accountType <value> --coin <value>
+```
