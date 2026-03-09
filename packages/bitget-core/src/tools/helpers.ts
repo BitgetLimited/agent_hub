@@ -56,9 +56,16 @@ export function readStringArray(
   args: Record<string, unknown>,
   key: string,
 ): string[] | undefined {
-  const value = args[key];
+  let value = args[key];
   if (value === undefined || value === null) {
     return undefined;
+  }
+  if (typeof value === "string") {
+    try {
+      value = JSON.parse(value);
+    } catch {
+      throw new ValidationError(`Parameter "${key}" must be a valid JSON array of strings.`);
+    }
   }
   if (!Array.isArray(value) || value.some((item) => typeof item !== "string")) {
     throw new ValidationError(`Parameter "${key}" must be an array of strings.`);
@@ -70,9 +77,16 @@ export function readObjectArray(
   args: Record<string, unknown>,
   key: string,
 ): Record<string, unknown>[] | undefined {
-  const value = args[key];
+  let value = args[key];
   if (value === undefined || value === null) {
     return undefined;
+  }
+  if (typeof value === "string") {
+    try {
+      value = JSON.parse(value);
+    } catch {
+      throw new ValidationError(`Parameter "${key}" must be a valid JSON array of objects.`);
+    }
   }
   if (
     !Array.isArray(value) ||
