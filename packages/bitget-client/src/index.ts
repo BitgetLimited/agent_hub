@@ -67,11 +67,15 @@ async function main(): Promise<void> {
       } else if (next === "false") {
         toolArgs[key] = false;
       } else if (next.startsWith("[") || next.startsWith("{")) {
-        // Try to parse JSON arrays/objects (e.g. --orders '[{...}]')
+        // Parse JSON arrays/objects (e.g. --orders '[{...}]')
+        // Core helpers.ts also handles string-encoded JSON, but pre-parsing here
+        // gives a clearer error message at the CLI boundary.
         try {
           toolArgs[key] = JSON.parse(next);
         } catch {
-          toolArgs[key] = next;
+          process.stderr.write(`Error: --${key} value is not valid JSON.\n`);
+          process.exitCode = 1;
+          return;
         }
       } else {
         toolArgs[key] = next;
