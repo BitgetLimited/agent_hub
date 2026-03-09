@@ -314,14 +314,14 @@ Get futures orderbook depth with precision levels. Public endpoint. Rate limit: 
 
 | Name | Type | Required | Description |
 |------|------|----------|-------------|
-| `productType` | string | Yes |  |
-| `symbol` | string | Yes | Contract symbol. |
-| `limit` | number | No | Depth levels, default 100. |
-| `precision` | string | No | Merge precision value. |
+| `productType` | string | Yes | `USDT-FUTURES`, `USDC-FUTURES`, or `COIN-FUTURES` |
+| `symbol` | string | Yes | Contract symbol, e.g. `BTCUSDT` |
+| `limit` | number | No | Depth levels, default 100 |
+| `precision` | string | No | Price merge precision (e.g. `"0.1"` groups bids/asks to nearest 0.1) |
 
 **Example:**
 ```bash
-bgc futures futures_get_depth --productType <value> --symbol <value>
+bgc futures futures_get_depth --productType USDT-FUTURES --symbol BTCUSDT
 ```
 
 ### `futures_get_candles`
@@ -334,17 +334,17 @@ Get futures candles from trade/index/mark price sources. Public endpoint. Rate l
 
 | Name | Type | Required | Description |
 |------|------|----------|-------------|
-| `productType` | string | Yes |  |
-| `symbol` | string | Yes |  |
-| `granularity` | string | Yes |  |
-| `priceType` | string | No | trade(default), index, or mark. |
-| `startTime` | string | No |  |
-| `endTime` | string | No |  |
-| `limit` | number | No |  |
+| `productType` | string | Yes | `USDT-FUTURES`, `USDC-FUTURES`, or `COIN-FUTURES` |
+| `symbol` | string | Yes | Contract symbol, e.g. `BTCUSDT` |
+| `granularity` | string | Yes | Candle period: `1min`, `5min`, `15min`, `30min`, `1h`, `4h`, `6h`, `12h`, `1day`, `3day`, `1week`, `1M` |
+| `priceType` | string | No | `trade` (default, last price), `index`, or `mark` |
+| `startTime` | string | No | Start time in milliseconds |
+| `endTime` | string | No | End time in milliseconds |
+| `limit` | number | No | Result size, default 100, max 1000 |
 
 **Example:**
 ```bash
-bgc futures futures_get_candles --productType <value> --symbol <value>
+bgc futures futures_get_candles --productType USDT-FUTURES --symbol BTCUSDT --granularity 1h
 ```
 
 ### `futures_get_trades`
@@ -357,20 +357,21 @@ Get recent or historical futures trade records. Public endpoint. Rate limit: 10 
 
 | Name | Type | Required | Description |
 |------|------|----------|-------------|
-| `productType` | string | Yes |  |
-| `symbol` | string | Yes |  |
-| `limit` | number | No |  |
-| `startTime` | string | No |  |
-| `endTime` | string | No |  |
+| `productType` | string | Yes | `USDT-FUTURES`, `USDC-FUTURES`, or `COIN-FUTURES` |
+| `symbol` | string | Yes | Contract symbol, e.g. `BTCUSDT` |
+| `limit` | number | No | Result size, default 100, max 500 |
+| `startTime` | string | No | Start time in milliseconds |
+| `endTime` | string | No | End time in milliseconds |
 
 **Example:**
 ```bash
-bgc futures futures_get_trades --productType <value> --symbol <value>
+bgc futures futures_get_trades --productType USDT-FUTURES --symbol BTCUSDT --limit 20
 ```
 
 ### `futures_get_contracts`
 
 Get futures contract configuration details. Public endpoint. Rate limit: 20 req/s per IP.
+Use this to check the min order size, price precision, and size precision before placing an order.
 
 **Write operation:** No
 
@@ -378,12 +379,14 @@ Get futures contract configuration details. Public endpoint. Rate limit: 20 req/
 
 | Name | Type | Required | Description |
 |------|------|----------|-------------|
-| `productType` | string | Yes |  |
-| `symbol` | string | No | Optional symbol filter. |
+| `productType` | string | Yes | `USDT-FUTURES`, `USDC-FUTURES`, or `COIN-FUTURES` |
+| `symbol` | string | No | Filter to a specific contract; omit for all contracts |
+
+**Key response fields:** `minTradeNum` (min order size), `sizeMultiplier`, `priceEndStep` (price decimal places), `volumePlace` (size decimal places), `maxLever` (max leverage).
 
 **Example:**
 ```bash
-bgc futures futures_get_contracts --productType <value> --symbol <value>
+bgc futures futures_get_contracts --productType USDT-FUTURES --symbol BTCUSDT
 ```
 
 ### `futures_get_funding_rate`
@@ -396,15 +399,17 @@ Get current or historical funding rates for a futures symbol. Public endpoint. R
 
 | Name | Type | Required | Description |
 |------|------|----------|-------------|
-| `productType` | string | Yes |  |
-| `symbol` | string | Yes |  |
-| `history` | boolean | No | true for historical funding rates. |
-| `pageSize` | number | No | Page size for history mode. |
-| `pageNo` | number | No | Page number for history mode. |
+| `productType` | string | Yes | `USDT-FUTURES`, `USDC-FUTURES`, or `COIN-FUTURES` |
+| `symbol` | string | Yes | Contract symbol, e.g. `BTCUSDT` |
+| `history` | boolean | No | `true` to get historical funding rates (paginated) |
+| `pageSize` | number | No | Page size for history mode |
+| `pageNo` | number | No | Page number for history mode (1-based) |
+
+> Current funding rate is returned when `history` is omitted. Check before opening positions — high funding rates increase holding cost.
 
 **Example:**
 ```bash
-bgc futures futures_get_funding_rate --productType <value> --symbol <value>
+bgc futures futures_get_funding_rate --productType USDT-FUTURES --symbol BTCUSDT
 ```
 
 ### `futures_get_open_interest`
@@ -417,12 +422,14 @@ Get open interest for a futures contract. Public endpoint. Rate limit: 20 req/s 
 
 | Name | Type | Required | Description |
 |------|------|----------|-------------|
-| `productType` | string | Yes |  |
-| `symbol` | string | Yes |  |
+| `productType` | string | Yes | `USDT-FUTURES`, `USDC-FUTURES`, or `COIN-FUTURES` |
+| `symbol` | string | Yes | Contract symbol, e.g. `BTCUSDT` |
+
+> Open interest measures total outstanding contracts. Rising OI with rising price confirms trend strength.
 
 **Example:**
 ```bash
-bgc futures futures_get_open_interest --productType <value> --symbol <value>
+bgc futures futures_get_open_interest --productType USDT-FUTURES --symbol BTCUSDT
 ```
 
 ### `futures_place_order` ✏️
@@ -433,13 +440,65 @@ Place one or more futures orders with optional TP/SL. [CAUTION] Executes real tr
 
 **Parameters:**
 
-| Name | Type | Required | Description |
-|------|------|----------|-------------|
-| `orders` | array | Yes | Array of futures order objects. |
+The `orders` array contains one object per order. Each order object has:
 
-**Example:**
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `symbol` | string | Yes | Trading pair, e.g. `BTCUSDT` |
+| `productType` | string | Yes | `USDT-FUTURES`, `USDC-FUTURES`, or `COIN-FUTURES` |
+| `marginCoin` | string | Yes | Margin coin in uppercase, e.g. `USDT` |
+| `marginMode` | string | No | `crossed` (default) or `isolated` |
+| `side` | string | Yes | Direction: `buy` or `sell` |
+| `tradeSide` | string | Conditional | Required in hedge-mode: `open` or `close` |
+| `orderType` | string | Yes | `limit` or `market` |
+| `size` | string | Yes | Position size in base coin (e.g. `"0.001"` BTC) |
+| `price` | string | Conditional | Required when `orderType=limit` |
+| `force` | string | No | Time-in-force: `gtc` (default for limit), `ioc`, `fok`, `post_only` |
+| `reduceOnly` | string | No | `YES` to close without opening a new position (one-way mode only). Default `NO` |
+| `presetStopSurplusPrice` | string | No | Preset take-profit trigger price |
+| `presetStopLossPrice` | string | No | Preset stop-loss trigger price |
+| `presetStopSurplusExecutePrice` | string | No | Take-profit execution price (for limit TP) |
+| `presetStopLossExecutePrice` | string | No | Stop-loss execution price (for limit SL) |
+| `clientOid` | string | No | Custom order ID for idempotency |
+
+> **Batch limit:** max 50 orders per call. All orders in a batch must share the same `symbol`, `productType`, `marginCoin`, and `marginMode`.
+
+---
+
+**CRITICAL — Opening vs Closing positions (hedge-mode):**
+
+| Intent | `side` | `tradeSide` |
+|--------|--------|-------------|
+| Open long | `buy` | `open` |
+| Open short | `sell` | `open` |
+| **Close long** | **`buy`** | **`close`** |
+| **Close short** | **`sell`** | **`close`** |
+
+> Close long uses `side=buy` (not `sell`). Close short uses `side=sell`.
+> This is counterintuitive — the `side` matches the *direction of the position*, not the action.
+
+**One-way mode:** omit `tradeSide`; use `reduceOnly=YES` to close without flipping.
+
+---
+
+**Example — Open long:**
 ```bash
-bgc futures futures_place_order --orders <value>
+bgc futures futures_place_order --orders '[{"symbol":"BTCUSDT","productType":"USDT-FUTURES","marginCoin":"USDT","side":"buy","tradeSide":"open","orderType":"limit","price":"70000","size":"0.001"}]'
+```
+
+**Example — Close long (market):**
+```bash
+bgc futures futures_place_order --orders '[{"symbol":"BTCUSDT","productType":"USDT-FUTURES","marginCoin":"USDT","side":"buy","tradeSide":"close","orderType":"market","size":"0.001"}]'
+```
+
+**Example — Close short (market):**
+```bash
+bgc futures futures_place_order --orders '[{"symbol":"BTCUSDT","productType":"USDT-FUTURES","marginCoin":"USDT","side":"sell","tradeSide":"close","orderType":"market","size":"0.001"}]'
+```
+
+**Example — Open long with TP/SL:**
+```bash
+bgc futures futures_place_order --orders '[{"symbol":"BTCUSDT","productType":"USDT-FUTURES","marginCoin":"USDT","side":"buy","tradeSide":"open","orderType":"limit","price":"70000","size":"0.001","presetStopSurplusPrice":"75000","presetStopLossPrice":"67000"}]'
 ```
 
 ### `futures_cancel_orders` ✏️
@@ -452,16 +511,23 @@ Cancel futures orders by order id, batch ids, or cancel-all mode. Private endpoi
 
 | Name | Type | Required | Description |
 |------|------|----------|-------------|
-| `productType` | string | Yes |  |
-| `symbol` | string | Yes |  |
-| `orderId` | string | No |  |
-| `orderIds` | array | No |  |
-| `cancelAll` | boolean | No |  |
-| `marginCoin` | string | No |  |
+| `productType` | string | Yes | `USDT-FUTURES`, `USDC-FUTURES`, or `COIN-FUTURES` |
+| `symbol` | string | Yes | Trading pair symbol, e.g. `BTCUSDT` |
+| `orderId` | string | No | Single order ID to cancel |
+| `orderIds` | array | No | Multiple order IDs to cancel. Max 50. |
+| `cancelAll` | boolean | No | Set `true` to cancel all open orders for the symbol |
+| `marginCoin` | string | No | Required when using `cancelAll=true` |
 
-**Example:**
+> Provide exactly one of: `orderId`, `orderIds`, or `cancelAll=true`.
+
+**Example — cancel single order:**
 ```bash
-bgc futures futures_cancel_orders --productType <value> --symbol <value>
+bgc futures futures_cancel_orders --productType USDT-FUTURES --symbol BTCUSDT --orderId 123456789
+```
+
+**Example — cancel all orders for symbol:**
+```bash
+bgc futures futures_cancel_orders --productType USDT-FUTURES --symbol BTCUSDT --cancelAll true --marginCoin USDT
 ```
 
 ### `futures_get_orders`
@@ -474,17 +540,18 @@ Query futures orders by id, open status, or history. Private endpoint. Rate limi
 
 | Name | Type | Required | Description |
 |------|------|----------|-------------|
-| `productType` | string | Yes |  |
-| `orderId` | string | No |  |
-| `symbol` | string | No |  |
-| `status` | string | No |  |
-| `startTime` | string | No |  |
-| `endTime` | string | No |  |
-| `limit` | number | No |  |
+| `productType` | string | Yes | `USDT-FUTURES`, `USDC-FUTURES`, or `COIN-FUTURES` |
+| `orderId` | string | No | Look up a specific order by ID |
+| `symbol` | string | No | Filter by trading pair |
+| `status` | string | No | `open` (default, pending orders) or `history` (filled/cancelled) |
+| `startTime` | string | No | Start time in milliseconds |
+| `endTime` | string | No | End time in milliseconds |
+| `limit` | number | No | Result size, default 100 |
 
 **Example:**
 ```bash
-bgc futures futures_get_orders --productType <value> --orderId <value>
+bgc futures futures_get_orders --productType USDT-FUTURES --status open
+bgc futures futures_get_orders --productType USDT-FUTURES --status history --symbol BTCUSDT
 ```
 
 ### `futures_get_fills`
@@ -497,16 +564,18 @@ Get futures fills and fill history records. Private endpoint. Rate limit: 10 req
 
 | Name | Type | Required | Description |
 |------|------|----------|-------------|
-| `productType` | string | Yes |  |
-| `symbol` | string | No |  |
-| `orderId` | string | No |  |
-| `startTime` | string | No |  |
-| `endTime` | string | No |  |
-| `limit` | number | No |  |
+| `productType` | string | Yes | `USDT-FUTURES`, `USDC-FUTURES`, or `COIN-FUTURES` |
+| `symbol` | string | No | Filter by trading pair |
+| `orderId` | string | No | Filter fills for a specific order |
+| `startTime` | string | No | Start time in milliseconds (enables historical fill query) |
+| `endTime` | string | No | End time in milliseconds |
+| `limit` | number | No | Result size, default 100 |
+
+> If `startTime` is provided, queries historical fills. Otherwise returns recent fills.
 
 **Example:**
 ```bash
-bgc futures futures_get_fills --productType <value> --symbol <value>
+bgc futures futures_get_fills --productType USDT-FUTURES --symbol BTCUSDT
 ```
 
 ### `futures_get_positions`
@@ -519,14 +588,30 @@ Get current or historical futures positions. Private endpoint. Rate limit: 10 re
 
 | Name | Type | Required | Description |
 |------|------|----------|-------------|
-| `productType` | string | Yes |  |
-| `symbol` | string | No |  |
-| `marginCoin` | string | No |  |
-| `history` | boolean | No |  |
+| `productType` | string | Yes | `USDT-FUTURES`, `USDC-FUTURES`, or `COIN-FUTURES` |
+| `symbol` | string | No | Omit to get all open positions; include to get a specific symbol's position |
+| `marginCoin` | string | No | Defaults to `USDT` when `symbol` is provided |
+| `history` | boolean | No | `true` to get closed position history instead of open positions |
+
+**Key response fields:**
+
+| Field | Description |
+|-------|-------------|
+| `holdSide` | `long` or `short` — the position direction |
+| `available` | **Closable quantity** — the max size you can close right now |
+| `total` | Total position size (`available + frozen`) |
+| `avgOpenPrice` | Average entry price |
+| `unrealizedPL` | Unrealized profit/loss |
+| `leverage` | Current leverage |
+| `marginMode` | `crossed` or `isolated` |
+| `liquidationPrice` | Estimated liquidation price |
+
+> Use `available` (not `total`) as the `size` when placing a full-close order.
 
 **Example:**
 ```bash
-bgc futures futures_get_positions --productType <value> --symbol <value>
+bgc futures futures_get_positions --productType USDT-FUTURES
+bgc futures futures_get_positions --productType USDT-FUTURES --symbol BTCUSDT
 ```
 
 ### `futures_set_leverage` ✏️
@@ -539,15 +624,17 @@ Set futures leverage for symbol and margin coin. [CAUTION] Affects risk exposure
 
 | Name | Type | Required | Description |
 |------|------|----------|-------------|
-| `productType` | string | Yes |  |
-| `symbol` | string | Yes |  |
-| `marginCoin` | string | Yes |  |
-| `leverage` | string | Yes |  |
-| `holdSide` | string | No |  |
+| `productType` | string | Yes | `USDT-FUTURES`, `USDC-FUTURES`, or `COIN-FUTURES` |
+| `symbol` | string | Yes | Trading pair, e.g. `BTCUSDT` |
+| `marginCoin` | string | Yes | Margin coin in uppercase, e.g. `USDT` |
+| `leverage` | string | Yes | Leverage multiplier as string, e.g. `"5"` or `"10"` |
+| `holdSide` | string | No | `long` or `short` — required in hedge-mode to set leverage per side |
+
+> Risk control: leverage must be ≤ 10x unless user explicitly overrides.
 
 **Example:**
 ```bash
-bgc futures futures_set_leverage --productType <value> --symbol <value>
+bgc futures futures_set_leverage --productType USDT-FUTURES --symbol BTCUSDT --marginCoin USDT --leverage 5
 ```
 
 ### `futures_update_config` ✏️
@@ -560,16 +647,24 @@ Update futures margin mode, position mode, or auto-margin setting. [CAUTION] Aff
 
 | Name | Type | Required | Description |
 |------|------|----------|-------------|
-| `productType` | string | Yes |  |
-| `symbol` | string | Yes |  |
-| `marginCoin` | string | Yes |  |
-| `setting` | string | Yes |  |
-| `value` | string | Yes |  |
-| `holdSide` | string | No |  |
+| `productType` | string | Yes | `USDT-FUTURES`, `USDC-FUTURES`, or `COIN-FUTURES` |
+| `symbol` | string | Yes | Trading pair, e.g. `BTCUSDT` |
+| `marginCoin` | string | Yes | Margin coin in uppercase, e.g. `USDT` |
+| `setting` | string | Yes | Which setting to change: `marginMode`, `positionMode`, or `autoMargin` |
+| `value` | string | Yes | New value (see table below) |
+| `holdSide` | string | No | `long` or `short` — required for `autoMargin` setting |
+
+**Valid values per setting:**
+
+| `setting` | Valid `value` options |
+|-----------|-----------------------|
+| `marginMode` | `crossed` (cross margin) or `isolated` |
+| `positionMode` | `one_way_mode` or `hedge_mode` |
+| `autoMargin` | `on` or `off` |
 
 **Example:**
 ```bash
-bgc futures futures_update_config --productType <value> --symbol <value>
+bgc futures futures_update_config --productType USDT-FUTURES --symbol BTCUSDT --marginCoin USDT --setting positionMode --value hedge_mode
 ```
 
 ## Module: account
@@ -584,18 +679,22 @@ Get spot/futures/funding/all account balances. Private endpoint. Rate limit: 10 
 
 | Name | Type | Required | Description |
 |------|------|----------|-------------|
-| `accountType` | string | No | Target account type. Default all. |
-| `coin` | string | No | Optional coin filter. |
-| `productType` | string | No | Required when accountType=futures. |
+| `accountType` | string | No | `spot`, `futures`, `funding`, or `all` (default). Use `all` for a full overview. |
+| `coin` | string | No | Filter to a specific coin, e.g. `USDT` |
+| `productType` | string | No | Required when `accountType=futures`: `USDT-FUTURES`, `USDC-FUTURES`, or `COIN-FUTURES` |
+
+> Run this before every trade to confirm available balance. Check `available` field — not `total` — for tradable amount.
 
 **Example:**
 ```bash
-bgc account get_account_assets --accountType <value> --coin <value>
+bgc account get_account_assets
+bgc account get_account_assets --accountType futures --productType USDT-FUTURES
+bgc account get_account_assets --accountType spot --coin USDT
 ```
 
 ### `get_account_bills`
 
-Get account bill records for spot or futures account. Private endpoint. Rate limit: 10 req/s per UID.
+Get account bill records (trade history, fees, funding charges) for spot or futures account. Private endpoint. Rate limit: 10 req/s per UID.
 
 **Write operation:** No
 
@@ -603,17 +702,17 @@ Get account bill records for spot or futures account. Private endpoint. Rate lim
 
 | Name | Type | Required | Description |
 |------|------|----------|-------------|
-| `accountType` | string | No |  |
-| `coin` | string | No |  |
-| `productType` | string | No |  |
-| `businessType` | string | No |  |
-| `startTime` | string | No |  |
-| `endTime` | string | No |  |
-| `limit` | number | No |  |
+| `accountType` | string | No | `spot` or `futures` |
+| `coin` | string | No | Filter by coin, e.g. `USDT` |
+| `productType` | string | No | Required when `accountType=futures`: `USDT-FUTURES`, `USDC-FUTURES`, or `COIN-FUTURES` |
+| `businessType` | string | No | Filter by bill type, e.g. `trade`, `fee`, `funding` |
+| `startTime` | string | No | Start time in milliseconds |
+| `endTime` | string | No | End time in milliseconds |
+| `limit` | number | No | Result size, default 100 |
 
 **Example:**
 ```bash
-bgc account get_account_bills --accountType <value> --coin <value>
+bgc account get_account_bills --accountType futures --productType USDT-FUTURES
 ```
 
 ## Excluded Commands

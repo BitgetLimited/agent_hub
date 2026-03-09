@@ -75,10 +75,19 @@ bgc spot spot_get_fills --symbol BTCUSDT
 # Set leverage (confirm with user first)
 bgc futures futures_set_leverage --productType USDT-FUTURES --symbol BTCUSDT --marginCoin USDT --leverage 5
 
-# Place futures order
+# Open long position (hedge-mode)
 bgc futures futures_place_order --orders '[{"productType":"USDT-FUTURES","symbol":"BTCUSDT","side":"buy","tradeSide":"open","orderType":"limit","price":"70000","size":"0.001","marginCoin":"USDT"}]'
 
-# View positions
+# Open short position (hedge-mode)
+bgc futures futures_place_order --orders '[{"productType":"USDT-FUTURES","symbol":"BTCUSDT","side":"sell","tradeSide":"open","orderType":"limit","price":"70000","size":"0.001","marginCoin":"USDT"}]'
+
+# CLOSE LONG position — side=buy + tradeSide=close (NOT side=sell)
+bgc futures futures_place_order --orders '[{"productType":"USDT-FUTURES","symbol":"BTCUSDT","side":"buy","tradeSide":"close","orderType":"market","size":"0.001","marginCoin":"USDT"}]'
+
+# CLOSE SHORT position — side=sell + tradeSide=close
+bgc futures futures_place_order --orders '[{"productType":"USDT-FUTURES","symbol":"BTCUSDT","side":"sell","tradeSide":"close","orderType":"market","size":"0.001","marginCoin":"USDT"}]'
+
+# View positions (check 'available' field for closable size, 'holdSide' for long/short)
 bgc futures futures_get_positions --productType USDT-FUTURES
 
 # View orders
@@ -87,6 +96,13 @@ bgc futures futures_get_orders --productType USDT-FUTURES --status open
 # Cancel orders
 bgc futures futures_cancel_orders --productType USDT-FUTURES --symbol BTCUSDT --orderId <orderId>
 ```
+
+**CRITICAL — Closing logic:**
+- Closing a position uses the **same `side` as the position direction**, combined with `tradeSide=close`
+- Close long: `side=buy, tradeSide=close` (counterintuitive — buy to close long)
+- Close short: `side=sell, tradeSide=close`
+- Use `available` from `futures_get_positions` as the size when fully closing
+- One-way mode: omit `tradeSide`, use `reduceOnly=YES` instead
 
 ### Account
 
