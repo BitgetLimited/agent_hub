@@ -31,13 +31,19 @@ const tools = allTools.filter(
   (t) => ALLOWED_MODULES.has(t.module) && !EXCLUDED_TOOLS.has(t.name)
 );
 
+if (tools.length === 0) {
+  console.error("ERROR: filter produced zero tools — check ALLOWED_MODULES and EXCLUDED_TOOLS");
+  process.exit(1);
+}
+
 const lines = [
   "# bgc Command Reference — Agent Account",
   "",
   "Auto-generated from bitget-core tool definitions (agent-safe subset).",
   "",
-  "Excluded: `transfer`, `withdraw`, `manage_subaccounts` — virtual sub-account",
-  "API key has no permission for these operations.",
+  "Excluded: `transfer`, `withdraw`, `cancel_withdrawal`, `get_deposit_address`,",
+  "`get_transaction_records`, `manage_subaccounts` — virtual sub-account API key",
+  "has no permission for these operations.",
   "",
   "## Usage",
   "",
@@ -96,6 +102,25 @@ for (const [module, moduleTools] of Object.entries(byModule)) {
     lines.push("```", "");
   }
 }
+
+// Append excluded commands section
+lines.push("## Excluded Commands", "");
+lines.push(
+  "The following account tools are NOT available in this skill.",
+  "Your virtual sub-account API key has no permission for these operations.",
+  "",
+  "| Command | Reason |",
+  "|---------|--------|",
+  "| `transfer` | Sub-account has no transfer permission. Fund movements are user-controlled. |",
+  "| `withdraw` | No withdrawal permission by design — core security guarantee. |",
+  "| `cancel_withdrawal` | No withdrawal operations available. |",
+  "| `get_deposit_address` | Not needed for agent trading operations. |",
+  "| `get_transaction_records` | Not needed for agent trading operations. |",
+  "| `manage_subaccounts` | Not relevant to agent trading operations. |",
+  "",
+  "> If `withdraw` appears callable, warn the user — they may be using a main-account API key.",
+  ""
+);
 
 writeFileSync(join(refsDir, "commands.md"), lines.join("\n"), "utf8");
 console.log(`Generated references/commands.md (${tools.length} agent-safe tools, ${allTools.length - tools.length} excluded)`);

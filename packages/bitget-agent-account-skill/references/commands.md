@@ -2,8 +2,9 @@
 
 Auto-generated from bitget-core tool definitions (agent-safe subset).
 
-Excluded: `transfer`, `withdraw`, `manage_subaccounts` — virtual sub-account
-API key has no permission for these operations.
+Excluded: `transfer`, `withdraw`, `cancel_withdrawal`, `get_deposit_address`,
+`get_transaction_records`, `manage_subaccounts` — virtual sub-account API key
+has no permission for these operations.
 
 ## Usage
 
@@ -614,3 +615,19 @@ Get account bill records for spot or futures account. Private endpoint. Rate lim
 ```bash
 bgc account get_account_bills --accountType <value> --coin <value>
 ```
+
+## Excluded Commands
+
+The following account tools are NOT available in this skill.
+Your virtual sub-account API key has no permission for these operations.
+
+| Command | Reason |
+|---------|--------|
+| `transfer` | Sub-account has no transfer permission. Fund movements are user-controlled. |
+| `withdraw` | No withdrawal permission by design — core security guarantee. |
+| `cancel_withdrawal` | No withdrawal operations available. |
+| `get_deposit_address` | Not needed for agent trading operations. |
+| `get_transaction_records` | Not needed for agent trading operations. |
+| `manage_subaccounts` | Not relevant to agent trading operations. |
+
+> If `withdraw` appears callable, warn the user — they may be using a main-account API key.
