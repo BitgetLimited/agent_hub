@@ -32,11 +32,12 @@ Get real-time ticker data for spot trading pair(s). Public endpoint. Rate limit:
 
 | Name | Type | Required | Description |
 |------|------|----------|-------------|
-| `symbol` | string | No | Trading pair symbol, e.g. BTCUSDT. Omit for all tickers. |
+| `symbol` | string | No | Trading pair symbol, e.g. `BTCUSDT`. Omit to get all tickers. |
 
 **Example:**
 ```bash
-bgc spot spot_get_ticker --symbol <value>
+bgc spot spot_get_ticker --symbol BTCUSDT
+bgc spot spot_get_ticker
 ```
 
 ### `spot_get_depth`
@@ -49,18 +50,19 @@ Get orderbook depth for a spot trading pair. Public endpoint. Rate limit: 20 req
 
 | Name | Type | Required | Description |
 |------|------|----------|-------------|
-| `symbol` | string | Yes | Trading pair symbol, e.g. BTCUSDT |
-| `type` | string | No | Depth merge level. step0 means raw orderbook. |
-| `limit` | number | No | Depth levels, default 150, max 150. |
+| `symbol` | string | Yes | Trading pair symbol, e.g. `BTCUSDT` |
+| `type` | string | No | Price merge precision: `step0` (raw, no merge), `step1`–`step5` (increasing merge coarseness). Default `step0`. |
+| `limit` | number | No | Depth levels per side, default 150, max 150 |
 
 **Example:**
 ```bash
-bgc spot spot_get_depth --symbol <value> --type <value>
+bgc spot spot_get_depth --symbol BTCUSDT
+bgc spot spot_get_depth --symbol BTCUSDT --type step0 --limit 20
 ```
 
 ### `spot_get_candles`
 
-Get K-line data for spot trading pair. Public endpoint. Rate limit: 20 req/s per IP.
+Get K-line (candlestick) data for spot trading pair. Public endpoint. Rate limit: 20 req/s per IP.
 
 **Write operation:** No
 
@@ -68,15 +70,16 @@ Get K-line data for spot trading pair. Public endpoint. Rate limit: 20 req/s per
 
 | Name | Type | Required | Description |
 |------|------|----------|-------------|
-| `symbol` | string | Yes | Trading pair symbol, e.g. BTCUSDT |
-| `granularity` | string | Yes | Candlestick period. |
-| `startTime` | string | No | Start time in milliseconds. |
-| `endTime` | string | No | End time in milliseconds. |
-| `limit` | number | No | Result size, default 100, max 1000. |
+| `symbol` | string | Yes | Trading pair symbol, e.g. `BTCUSDT` |
+| `granularity` | string | Yes | Candle period: `1min`, `5min`, `15min`, `30min`, `1h`, `4h`, `6h`, `12h`, `1day`, `3day`, `1week`, `1M` |
+| `startTime` | string | No | Start time in milliseconds |
+| `endTime` | string | No | End time in milliseconds |
+| `limit` | number | No | Result size, default 100, max 1000 |
 
 **Example:**
 ```bash
-bgc spot spot_get_candles --symbol <value> --granularity <value>
+bgc spot spot_get_candles --symbol BTCUSDT --granularity 1h
+bgc spot spot_get_candles --symbol BTCUSDT --granularity 15min --limit 200
 ```
 
 ### `spot_get_trades`
@@ -89,19 +92,20 @@ Get recent or historical trade records for spot symbol. Public endpoint. Rate li
 
 | Name | Type | Required | Description |
 |------|------|----------|-------------|
-| `symbol` | string | Yes | Trading pair symbol. |
-| `limit` | number | No | Result size, default 100, max 500. |
-| `startTime` | string | No | Start time in milliseconds. |
-| `endTime` | string | No | End time in milliseconds. |
+| `symbol` | string | Yes | Trading pair symbol, e.g. `BTCUSDT` |
+| `limit` | number | No | Result size, default 100, max 500 |
+| `startTime` | string | No | Start time in milliseconds |
+| `endTime` | string | No | End time in milliseconds |
 
 **Example:**
 ```bash
-bgc spot spot_get_trades --symbol <value> --limit <value>
+bgc spot spot_get_trades --symbol BTCUSDT --limit 50
 ```
 
 ### `spot_get_symbols`
 
-Get spot symbol info or coin chain info. Public endpoint. Rate limit: 20 req/s per IP.
+Get spot symbol trading rules or coin chain info. Public endpoint. Rate limit: 20 req/s per IP.
+Use this to check min order size, price precision, and quantity precision before placing orders.
 
 **Write operation:** No
 
@@ -109,13 +113,16 @@ Get spot symbol info or coin chain info. Public endpoint. Rate limit: 20 req/s p
 
 | Name | Type | Required | Description |
 |------|------|----------|-------------|
-| `type` | string | No | symbols(default) or coins. |
-| `symbol` | string | No | Specific symbol filter. |
-| `coin` | string | No | Specific coin filter. |
+| `type` | string | No | `symbols` (default — trading pair rules) or `coins` (coin chain info) |
+| `symbol` | string | No | Filter to a specific symbol, e.g. `BTCUSDT` |
+| `coin` | string | No | Filter to a specific coin, e.g. `BTC` |
+
+**Key response fields (type=symbols):** `minTradeAmount` (min order value), `minTradeUSDT`, `quantityPrecision` (size decimal places), `pricePrecision` (price decimal places), `status` (`online`/`offline`).
 
 **Example:**
 ```bash
-bgc spot spot_get_symbols --type <value> --symbol <value>
+bgc spot spot_get_symbols --symbol BTCUSDT
+bgc spot spot_get_symbols --type coins --coin USDT
 ```
 
 ### `spot_place_order` ✏️
@@ -126,13 +133,34 @@ Place one or more spot orders. [CAUTION] Executes real trades. Private endpoint.
 
 **Parameters:**
 
-| Name | Type | Required | Description |
-|------|------|----------|-------------|
-| `orders` | array | Yes | Array of order objects. Single order should still be passed as an array with one item. |
+The `orders` array contains one object per order (max 50). Each order object has:
 
-**Example:**
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `symbol` | string | Yes | Trading pair, e.g. `BTCUSDT` |
+| `side` | string | Yes | `buy` or `sell` |
+| `orderType` | string | Yes | `limit` or `market` |
+| `size` | string | Yes | Order quantity in base coin (e.g. `"0.001"` BTC). For market buy orders, this is the quote amount (e.g. `"100"` USDT). |
+| `price` | string | Conditional | Required when `orderType=limit` |
+| `force` | string | No | Time-in-force: `gtc` (default for limit), `ioc`, `fok`, `post_only` |
+| `clientOid` | string | No | Custom order ID for idempotency (max 32 chars) |
+| `stpMode` | string | No | Self-trade prevention: `none` (default), `cancel_taker`, `cancel_maker`, `cancel_both` |
+
+> Spot orders do not use `tradeSide` — that field is futures-only.
+
+**Example — limit buy:**
 ```bash
-bgc spot spot_place_order --orders <value>
+bgc spot spot_place_order --orders '[{"symbol":"BTCUSDT","side":"buy","orderType":"limit","price":"70000","size":"0.001"}]'
+```
+
+**Example — market sell:**
+```bash
+bgc spot spot_place_order --orders '[{"symbol":"BTCUSDT","side":"sell","orderType":"market","size":"0.001"}]'
+```
+
+**Example — market buy with quote amount (spend 100 USDT):**
+```bash
+bgc spot spot_place_order --orders '[{"symbol":"BTCUSDT","side":"buy","orderType":"market","size":"100"}]'
 ```
 
 ### `spot_cancel_orders` ✏️
@@ -145,19 +173,22 @@ Cancel one or more spot orders by id, batch ids, or symbol-wide cancel. Private 
 
 | Name | Type | Required | Description |
 |------|------|----------|-------------|
-| `symbol` | string | Yes | Trading pair symbol. |
-| `orderId` | string | No | Single order id. |
-| `orderIds` | array | No | Multiple order ids. Max 50. |
-| `cancelAll` | boolean | No | If true, cancel all open orders for symbol. |
+| `symbol` | string | Yes | Trading pair symbol, e.g. `BTCUSDT` |
+| `orderId` | string | No | Single order ID to cancel |
+| `orderIds` | array | No | Multiple order IDs to cancel. Max 50. |
+| `cancelAll` | boolean | No | Set `true` to cancel all open orders for the symbol |
+
+> Provide exactly one of: `orderId`, `orderIds`, or `cancelAll=true`.
 
 **Example:**
 ```bash
-bgc spot spot_cancel_orders --symbol <value> --orderId <value>
+bgc spot spot_cancel_orders --symbol BTCUSDT --orderId 123456789
+bgc spot spot_cancel_orders --symbol BTCUSDT --cancelAll true
 ```
 
 ### `spot_modify_order` ✏️
 
-Cancel and replace a spot order atomically. Private endpoint. Rate limit: 10 req/s per UID.
+Cancel and replace a spot order atomically (cancel-replace). Private endpoint. Rate limit: 10 req/s per UID.
 
 **Write operation:** Yes — confirm with user before running
 
@@ -165,15 +196,17 @@ Cancel and replace a spot order atomically. Private endpoint. Rate limit: 10 req
 
 | Name | Type | Required | Description |
 |------|------|----------|-------------|
-| `symbol` | string | Yes | Trading pair symbol. |
-| `orderId` | string | Yes | Original order id. |
-| `newPrice` | string | No | New price for limit order. |
-| `newSize` | string | No | New order size. |
-| `newClientOid` | string | No | New client order id. |
+| `symbol` | string | Yes | Trading pair symbol, e.g. `BTCUSDT` |
+| `orderId` | string | Yes | Original order ID to replace |
+| `newPrice` | string | No | New limit price |
+| `newSize` | string | No | New order quantity |
+| `newClientOid` | string | No | New client order ID |
+
+> At least one of `newPrice`, `newSize`, or `newClientOid` must be provided. The original order is cancelled atomically — if the new order fails validation, the original is also cancelled.
 
 **Example:**
 ```bash
-bgc spot spot_modify_order --symbol <value> --orderId <value>
+bgc spot spot_modify_order --symbol BTCUSDT --orderId 123456789 --newPrice 69000
 ```
 
 ### `spot_get_orders`
@@ -186,22 +219,24 @@ Query spot order detail, open orders, or history orders. Private endpoint. Rate 
 
 | Name | Type | Required | Description |
 |------|------|----------|-------------|
-| `orderId` | string | No | Specific order id. |
-| `symbol` | string | No | Trading pair filter. |
-| `status` | string | No | open(default) or history. |
-| `startTime` | string | No | Start time in milliseconds. |
-| `endTime` | string | No | End time in milliseconds. |
-| `limit` | number | No | Result size, default 100. |
-| `idLessThan` | string | No | Pagination cursor. |
+| `orderId` | string | No | Look up a specific order by ID |
+| `symbol` | string | No | Filter by trading pair |
+| `status` | string | No | `open` (default, unfilled/partial) or `history` (filled/cancelled) |
+| `startTime` | string | No | Start time in milliseconds |
+| `endTime` | string | No | End time in milliseconds |
+| `limit` | number | No | Result size, default 100 |
+| `idLessThan` | string | No | Pagination cursor — pass last returned `orderId` to get next page |
 
 **Example:**
 ```bash
-bgc spot spot_get_orders --orderId <value> --symbol <value>
+bgc spot spot_get_orders --status open
+bgc spot spot_get_orders --status history --symbol BTCUSDT
+bgc spot spot_get_orders --orderId 123456789
 ```
 
 ### `spot_get_fills`
 
-Get spot fills for order execution details. Private endpoint. Rate limit: 10 req/s per UID.
+Get spot fill records (executed trades). Private endpoint. Rate limit: 10 req/s per UID.
 
 **Write operation:** No
 
@@ -209,20 +244,21 @@ Get spot fills for order execution details. Private endpoint. Rate limit: 10 req
 
 | Name | Type | Required | Description |
 |------|------|----------|-------------|
-| `symbol` | string | Yes | Trading pair symbol. |
-| `orderId` | string | No | Specific order id. |
-| `startTime` | string | No | Start time in milliseconds. |
-| `endTime` | string | No | End time in milliseconds. |
-| `limit` | number | No | Result size, default 100. |
+| `symbol` | string | Yes | Trading pair symbol, e.g. `BTCUSDT` |
+| `orderId` | string | No | Filter fills for a specific order |
+| `startTime` | string | No | Start time in milliseconds |
+| `endTime` | string | No | End time in milliseconds |
+| `limit` | number | No | Result size, default 100 |
 
 **Example:**
 ```bash
-bgc spot spot_get_fills --symbol <value> --orderId <value>
+bgc spot spot_get_fills --symbol BTCUSDT
+bgc spot spot_get_fills --symbol BTCUSDT --orderId 123456789
 ```
 
 ### `spot_place_plan_order` ✏️
 
-Create or modify spot plan order (trigger order). Private endpoint. Rate limit: 10 req/s per UID.
+Create or modify a spot trigger order (plan order). Executes when price hits `triggerPrice`. Private endpoint. Rate limit: 10 req/s per UID.
 
 **Write operation:** Yes — confirm with user before running
 
@@ -230,23 +266,30 @@ Create or modify spot plan order (trigger order). Private endpoint. Rate limit: 
 
 | Name | Type | Required | Description |
 |------|------|----------|-------------|
-| `orderId` | string | No | When provided, modify existing plan order. |
-| `symbol` | string | No | Trading pair symbol. |
-| `side` | string | No | Order side. |
-| `triggerPrice` | string | Yes | Trigger price. |
-| `triggerType` | string | No | Trigger source. |
-| `orderType` | string | No | Execution order type. |
-| `price` | string | No | Execution price for limit orders. |
-| `size` | string | No | Order quantity. |
+| `symbol` | string | Yes | Trading pair symbol, e.g. `BTCUSDT` |
+| `side` | string | Yes | `buy` or `sell` |
+| `triggerPrice` | string | Yes | Price that activates the order |
+| `size` | string | Yes | Order quantity in base coin |
+| `orderType` | string | Yes | Execution type when triggered: `limit` or `market` |
+| `price` | string | Conditional | Required when `orderType=limit` — the execution price after trigger |
+| `triggerType` | string | No | What price triggers: `mark_price`, `fill_price` (last trade, default), or `last_price` (same as fill_price) |
+| `orderId` | string | No | When provided, modifies an existing plan order instead of creating a new one |
 
-**Example:**
+> Use `triggerType=mark_price` for stop-loss orders to avoid wick-triggered fills.
+
+**Example — stop-loss sell (trigger on last price):**
 ```bash
-bgc spot spot_place_plan_order --orderId <value> --symbol <value>
+bgc spot spot_place_plan_order --symbol BTCUSDT --side sell --triggerPrice 68000 --orderType market --size 0.001
+```
+
+**Example — take-profit sell (limit execution):**
+```bash
+bgc spot spot_place_plan_order --symbol BTCUSDT --side sell --triggerPrice 75000 --orderType limit --price 74900 --size 0.001
 ```
 
 ### `spot_get_plan_orders`
 
-Get current or historical spot plan orders. Private endpoint. Rate limit: 10 req/s per UID.
+Get current or historical spot plan (trigger) orders. Private endpoint. Rate limit: 10 req/s per UID.
 
 **Write operation:** No
 
@@ -254,20 +297,21 @@ Get current or historical spot plan orders. Private endpoint. Rate limit: 10 req
 
 | Name | Type | Required | Description |
 |------|------|----------|-------------|
-| `symbol` | string | Yes | Trading pair symbol. |
-| `status` | string | No | current(default) or history. |
-| `startTime` | string | No | Start time in milliseconds. |
-| `endTime` | string | No | End time in milliseconds. |
-| `limit` | number | No | Result size, default 100. |
+| `symbol` | string | Yes | Trading pair symbol, e.g. `BTCUSDT` |
+| `status` | string | No | `current` (default, pending trigger orders) or `history` (triggered/cancelled) |
+| `startTime` | string | No | Start time in milliseconds |
+| `endTime` | string | No | End time in milliseconds |
+| `limit` | number | No | Result size, default 100 |
 
 **Example:**
 ```bash
-bgc spot spot_get_plan_orders --symbol <value> --status <value>
+bgc spot spot_get_plan_orders --symbol BTCUSDT
+bgc spot spot_get_plan_orders --symbol BTCUSDT --status history
 ```
 
 ### `spot_cancel_plan_orders` ✏️
 
-Cancel one or multiple spot plan orders. Private endpoint. Rate limit: 10 req/s per UID.
+Cancel one or multiple spot plan (trigger) orders. Private endpoint. Rate limit: 10 req/s per UID.
 
 **Write operation:** Yes — confirm with user before running
 
@@ -275,13 +319,16 @@ Cancel one or multiple spot plan orders. Private endpoint. Rate limit: 10 req/s 
 
 | Name | Type | Required | Description |
 |------|------|----------|-------------|
-| `orderId` | string | No | Single plan order id. |
-| `orderIds` | array | No | Multiple plan order ids. |
-| `symbol` | string | No | Cancel all plan orders for symbol. |
+| `orderId` | string | No | Single plan order ID to cancel |
+| `orderIds` | array | No | Multiple plan order IDs. Max 50. |
+| `symbol` | string | No | Cancel all plan orders for this symbol |
+
+> Provide exactly one of: `orderId`, `orderIds`, or `symbol`.
 
 **Example:**
 ```bash
-bgc spot spot_cancel_plan_orders --orderId <value> --orderIds <value>
+bgc spot spot_cancel_plan_orders --orderId 123456789
+bgc spot spot_cancel_plan_orders --symbol BTCUSDT
 ```
 
 ## Module: futures
