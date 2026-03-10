@@ -502,7 +502,7 @@ class BOLL(BaseIndicator):
             category=IndicatorCategory.VOLATILITY,
             description=f"Bollinger Bands ({period},{std_dev})",
             parameters=self.params,
-            output_names=["UPPER", "MIDDLE", "LOWER"],
+            output_names=["UPPER", "MIDDLE", "LOWER", "PCT_B", "BANDWIDTH"],
             formula=f"MIDDLE=SMA(CLOSE,{period}); UPPER=MIDDLE+{std_dev}*STD; LOWER=MIDDLE-{std_dev}*STD",
             interpretation="Price breaking upper band = overbought, breaking lower band = oversold; band squeeze signals breakout",
             display_panel="main"
@@ -516,9 +516,12 @@ class BOLL(BaseIndicator):
         std = close.rolling(window=period).std()
         upper = middle + std_dev * std
         lower = middle - std_dev * std
+        band_width = upper - lower
+        pct_b = (close - lower) / band_width
+        bandwidth = band_width / middle
         signals = self.get_signals([upper, middle, lower, close], data.index)
         return IndicatorResult(
-            values={"UPPER": upper, "MIDDLE": middle, "LOWER": lower},
+            values={"UPPER": upper, "MIDDLE": middle, "LOWER": lower, "PCT_B": pct_b, "BANDWIDTH": bandwidth},
             signals=signals,
             metadata={"period": period, "std_dev": std_dev}
         )
@@ -553,7 +556,7 @@ class ATR(BaseIndicator):
             category=IndicatorCategory.VOLATILITY,
             description=f"Average True Range ({period})",
             parameters=self.params,
-            output_names=["ATR"],
+            output_names=["ATR", "NATR"],
             formula=f"TR=MAX(H-L, |H-PC|, |L-PC|); ATR=EMA(TR, {period})",
             interpretation="Higher ATR = more volatile; commonly used for stop-loss placement",
             display_panel="separate"
@@ -571,9 +574,10 @@ class ATR(BaseIndicator):
             (low - prev_close).abs()
         ], axis=1).max(axis=1)
         atr = TechnicalUtils.ema(tr, period)
+        natr = atr / close * 100
         signals = self.get_signals([atr], data.index)
         return IndicatorResult(
-            values={"ATR": atr},
+            values={"ATR": atr, "NATR": natr},
             signals=signals,
             metadata={"period": period}
         )
@@ -1307,7 +1311,7 @@ class FIB(BaseIndicator):
     """FIB - Fibonacci Retracement"""
 
     def _get_default_params(self) -> Dict[str, Any]:
-        return {"n": 20, "m": 5, "buy_threshold": 20, "sell_threshold": 80}
+        return {"n": 100, "m": 5, "buy_threshold": 20, "sell_threshold": 80}
 
     def _create_config(self) -> IndicatorConfig:
         n = self.params["n"]
@@ -1315,7 +1319,7 @@ class FIB(BaseIndicator):
         return IndicatorConfig(
             name="FIB",
             category=IndicatorCategory.SUPPORT_RESISTANCE,
-            description=f"Fibonacci Retracement ({n},{m})",
+            description=f"Fibonacci Retracement (lookback={n}, smooth={m})",
             parameters=self.params,
             output_names=[f"FIB_STRENGTH_{n}_{m}", f"FIB_TREND_MA_{m}"],
             formula=f"FIB_POSITION=(CLOSE-LOW_{n})/(HIGH_{n}-LOW_{n})*100; FIB_STRENGTH=EMA(FIB_POS,{m})",

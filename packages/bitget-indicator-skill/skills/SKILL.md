@@ -127,7 +127,7 @@ This saves OHLCV + all indicator columns to CSV for downstream use.
 | `GRANULARITY` | Kline interval | `1h`, `4h`, `1d`, `15min` |
 | `LIMIT` | Number of klines | `200` (default) |
 | `CONFIG` | Indicator config dict | See scenarios.md |
-| `TAIL` | Number of recent bars in series output | `20` (default) |
+| `TAIL` | Number of recent bars in series output | `50` (default) |
 | `CSV_PATH` | File path for CSV export (optional) | `./btc_indicators.csv` |
 
 ### Choosing TAIL

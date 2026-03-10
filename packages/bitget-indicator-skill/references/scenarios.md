@@ -216,7 +216,7 @@ config = {
 
 ```python
 config = {
-    "FIB": {"n": 20, "m": 5},                          # mathematical ratios
+    "FIB": {"n": 100, "m": 5},                         # mathematical ratios
     "BOLL": {"period": 20, "std_dev": 2},               # statistical bands
     "SuperTrend": {"period": 10, "multiplier": 3.0},    # dynamic trend line
     "VWAP": {"period": 20},                              # volume-weighted benchmark

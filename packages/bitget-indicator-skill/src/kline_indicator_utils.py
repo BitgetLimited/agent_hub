@@ -272,7 +272,7 @@ class IndicatorManager:
             "RSI": {"period": 14},
             "SuperTrend": {"period": 10, "multiplier": 3.0},
         }
-        output = manager.calculate_and_export(config, df, tail=20)
+        output = manager.calculate_and_export(config, df, tail=50)
         print(json.dumps(output, indent=2))
     """
 
@@ -322,11 +322,14 @@ class IndicatorManager:
                     result = self.calculate(indicator_name, data, **config)
                     results[indicator_name] = result
             except Exception as e:
-                pass
+                results[indicator_name] = IndicatorResult(
+                    values={}, signals={},
+                    metadata={"error": str(e)}
+                )
         return results
 
     def calculate_and_export(
-        self, config: dict, df: pd.DataFrame, tail: int = 20, csv_path: str = None
+        self, config: dict, df: pd.DataFrame, tail: int = 50, csv_path: str = None
     ) -> dict:
         """Compute indicators and return series (last `tail` bars) + context.
 

@@ -81,9 +81,9 @@
 | Field | Details |
 |-------|---------|
 | **Params** | `period=20, std_dev=2` |
-| **Output** | `UPPER`, `MIDDLE`, `LOWER` |
+| **Output** | `UPPER`, `MIDDLE`, `LOWER`, `PCT_B`, `BANDWIDTH` |
 | **Signals** | cross_up (bounces from lower through middle), cross_down (drops from upper through middle), trend |
-| **Interpretation** | Squeeze = imminent breakout; price touching upper band = overbought, lower = oversold |
+| **Interpretation** | PCT_B=(Close-Lower)/(Upper-Lower), 0-1 normalized position; BANDWIDTH=(Upper-Lower)/Middle, relative band width. Squeeze (low BANDWIDTH) = imminent breakout; PCT_B near 0 = oversold, near 1 = overbought |
 | **Crypto note** | Crypto volatility is high — std_dev=2.5 may work better; breakout direction after squeeze is valuable |
 
 ### ATR — Average True Range
@@ -91,10 +91,10 @@
 | Field | Details |
 |-------|---------|
 | **Params** | `period=14` |
-| **Output** | `ATR` |
+| **Output** | `ATR`, `NATR` |
 | **Signals** | None (pure volatility measure) |
-| **Interpretation** | Moving average of true range; used for stop-loss placement (e.g. 2x ATR) and position sizing |
-| **Crypto note** | BTC ATR typically $500–$3000; ATR% is more meaningful for altcoins |
+| **Interpretation** | ATR = absolute volatility in price units; NATR = ATR/Close*100, percentage-based volatility comparable across assets |
+| **Crypto note** | BTC ATR typically $500–$3000; use NATR to compare volatility across different coins (e.g. BTC vs altcoins) |
 
 ---
 
@@ -246,7 +246,7 @@
 
 | Field | Details |
 |-------|---------|
-| **Params** | `n=20, m=5, buy_threshold=20, sell_threshold=80` |
+| **Params** | `n=100, m=5, buy_threshold=20, sell_threshold=80` |
 | **Output** | `fib_high`, `fib_236`, `fib_382`, `fib_500`, `fib_618`, `fib_786`, `fib_low`, `fib_strength_{n}_{m}` |
 | **Signals** | cross_up, cross_down, trend |
 | **Interpretation** | Auto-calculates Fibonacci retracement levels over N periods; 0.382/0.5/0.618 are the most critical |
