@@ -132,12 +132,9 @@ This saves OHLCV + all indicator columns to CSV for downstream use.
 
 ### Choosing TAIL
 
-| Granularity | Suggested TAIL |
-|-------------|---------------|
-| 1min, 5min | 30-50 |
-| 15min, 30min | 20-30 |
-| 1h, 4h | 20 (default) |
-| 1d, 1w | 10-15 |
+Default is `50`, which works well for most timeframes. Users can override:
+- Increase to `100-200` for longer analysis windows
+- Decrease to `20-30` to reduce output size
 
 ### Bitget API interval mapping
 
