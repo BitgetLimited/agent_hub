@@ -2,20 +2,6 @@
 
 Auto-generated from bitget-core tool definitions.
 
-## Table of Contents
-
-- [spot](#module-spot) — spot_get_ticker, spot_get_depth, spot_get_candles, spot_get_trades, spot_get_symbols, spot_place_order, spot_cancel_orders, spot_modify_order, spot_get_orders, spot_get_fills, spot_place_plan_order, spot_get_plan_orders, spot_cancel_plan_orders
-- [futures](#module-futures) — futures_get_ticker, futures_get_depth, futures_get_candles, futures_get_trades, futures_get_contracts, futures_get_funding_rate, futures_get_open_interest, futures_place_order, futures_cancel_orders, futures_get_orders, futures_get_fills, futures_get_positions, futures_set_leverage, futures_update_config
-- [account](#module-account) — get_account_assets, get_account_bills, transfer, withdraw, cancel_withdrawal, get_deposit_address, get_transaction_records, manage_subaccounts
-- [margin](#module-margin) — margin_get_assets, margin_borrow, margin_repay, margin_place_order, margin_cancel_orders, margin_get_orders, margin_get_records
-- [copytrading](#module-copytrading) — copy_get_traders, copy_place_order, copy_close_position, copy_get_orders, copy_get_positions
-- [convert](#module-convert) — convert_get_quote, convert_execute, convert_get_history
-- [earn](#module-earn) — earn_get_products, earn_subscribe_redeem, earn_get_holdings
-- [p2p](#module-p2p) — p2p_get_merchants, p2p_get_orders
-- [broker](#module-broker) — broker_get_info, broker_manage_subaccounts, broker_manage_apikeys
-
-> **Write operations** (marked ✏️) require user confirmation before execution.
-
 ## Usage
 
 ```
