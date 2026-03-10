@@ -5,9 +5,13 @@
  * Usage:
  *   node scripts/publish.mjs                              # dry-run (shows what would be published)
  *   node scripts/publish.mjs --publish                    # actually publish
- *   node scripts/publish.mjs --publish --otp 123456       # publish with 2FA OTP code
  *   node scripts/publish.mjs --publish --tag next         # publish with a dist-tag
  *   node scripts/publish.mjs --package bitget-core        # publish a single package
+ *
+ * Authentication (npm 2FA):
+ *   Set NPM_TOKEN env var to an Automation token to bypass 2FA:
+ *     NPM_TOKEN=npm_xxxx node scripts/publish.mjs --publish
+ *   Create token at: npmjs.com → Account Settings → Access Tokens → Generate New Token → Automation
  *
  * Publish order (dependency-safe):
  *   1. bitget-core          (no workspace deps)
@@ -48,7 +52,6 @@ function parseArgs() {
     publish: args.includes("--publish"),
     dryRun: !args.includes("--publish"),
     tag: args.includes("--tag") ? args[args.indexOf("--tag") + 1] : "latest",
-    otp: args.includes("--otp") ? args[args.indexOf("--otp") + 1] : null,
     singlePackage: args.includes("--package")
       ? args[args.indexOf("--package") + 1]
       : null,
@@ -85,7 +88,6 @@ async function main() {
   console.log(`\n=== Bitget NPM Publish Script ===`);
   console.log(`Mode:    ${opts.dryRun ? "DRY RUN (pass --publish to actually publish)" : "LIVE PUBLISH"}`);
   console.log(`Tag:     ${opts.tag}`);
-  if (opts.otp) console.log(`OTP:     ${opts.otp}`);
   if (opts.singlePackage) {
     console.log(`Package: ${opts.singlePackage} (single package mode)`);
   }
@@ -131,7 +133,6 @@ async function main() {
         `--tag ${opts.tag}`,
         opts.dryRun ? "--dry-run" : "",
         "--no-git-checks",
-        opts.otp ? `--otp ${opts.otp}` : "",
       ]
         .filter(Boolean)
         .join(" ");
