@@ -35,6 +35,7 @@ Once configured, your AI can check prices, query balances, place and cancel orde
 | [`bitget-mcp-server`](packages/bitget-mcp/) | MCP server — integrates with Claude, Cursor, Codex | `npx -y bitget-mcp-server` |
 | [`bitget-client`](packages/bitget-client/) | CLI tool (`bgc`) — shell access to all 36 tools | `npm install -g bitget-client` |
 | [`bitget-skill`](packages/bitget-skill/) | Claude Code skill — AI uses `bgc` as a live API bridge | `npm install -g bitget-skill` |
+| [`bitget-indicator-skill`](packages/bitget-indicator-skill/) | Technical indicator skill — 23 crypto indicators, 6 categories | `npm install -g bitget-indicator-skill` |
 | [`bitget-core`](packages/bitget-core/) | Shared REST client and tool definitions | internal |
 
 ---
@@ -148,9 +149,27 @@ export BITGET_SECRET_KEY="your-secret-key"
 export BITGET_PASSPHRASE="your-passphrase"
 ```
 
-After installation, Claude Code picks up the skill automatically. Try: *"查一下我的 BTC 仓位"* or *"What's the current BTC price?"*
+After installation, Claude Code picks up the skill automatically. Try: *"What's the current BTC price?"* or *"Check my BTC position."*
 
 → See [docs/packages/bitget-skill.md](docs/packages/bitget-skill.md) for details.
+
+---
+
+## Technical Indicator Skill
+
+23 crypto technical indicators across 6 categories (Trend, Volatility, Oscillator, Volume, Momentum, Support/Resistance). Each indicator outputs recent time-series data, giving AI full visibility into trend evolution for richer, more accurate analysis. No API key required for public market data.
+
+```bash
+# 1. Install skill (auto-copies to ~/.claude/skills/bitget-indicator-skill/)
+npm install -g bitget-indicator-skill
+
+# 2. Ensure Python dependencies are installed
+pip install pandas numpy
+```
+
+After installation, try: *"BTC 1-hour technical analysis"* or *"Is ETH overbought right now?"*
+
+→ See [packages/bitget-indicator-skill/](packages/bitget-indicator-skill/) for details.
 
 ---
 
