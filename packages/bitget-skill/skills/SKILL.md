@@ -44,6 +44,46 @@ For the full list of tools and parameters, read:
 
 It has a table of contents — go directly to the relevant module section.
 
+For trading interfaces, detailed reference docs with full parameter descriptions, use cases, and examples are in:
+`~/.claude/skills/bitget-skill/references/trading/`
+
+| File | Covers |
+|------|--------|
+| `trading/spot-place-order.md` | Spot limit/market/batch orders, TP/SL presets |
+| `trading/spot-cancel-orders.md` | Cancel single, batch, or all spot orders |
+| `trading/spot-modify-order.md` | Modify (cancel-and-replace) a spot order |
+| `trading/spot-get-orders.md` | Query open/history spot orders |
+| `trading/spot-plan-orders.md` | Spot trigger/plan orders (stop-loss, breakout) |
+| `trading/futures-place-order.md` | Futures orders, one-way/hedge mode, TP/SL |
+| `trading/futures-cancel-orders.md` | Cancel futures orders |
+| `trading/futures-get-orders.md` | Query futures orders and fills |
+| `trading/futures-positions.md` | Current/history positions, PnL, liquidation price |
+| `trading/futures-leverage-config.md` | Set leverage, margin mode, position mode |
+
+**Always read the relevant trading reference before constructing a trading command.**
+
+## Futures: Close Position & TP/SL Quick Rules
+
+Before placing ANY futures close or TP/SL order, check the position first:
+```bash
+bgc futures futures_get_positions --productType USDT-FUTURES --symbol BTCUSDT
+```
+Note: `holdSide` (long/short) and `posMode` (one_way_mode/hedge_mode).
+
+### Close direction rules (most common mistake)
+| Position | `side` to close | Extra param |
+|----------|----------------|-------------|
+| Long (one-way mode) | `sell` | `reduceOnly: "YES"` |
+| Short (one-way mode) | `buy` | `reduceOnly: "YES"` |
+| Long (hedge mode) | `sell` | `tradeSide: "close"` |
+| Short (hedge mode) | `buy` | `tradeSide: "close"` |
+
+> **Selling to close a short is WRONG — it opens more short.**
+
+### TP/SL options (bgc has NO futures plan orders)
+1. **Preset at entry**: `presetStopSurplusPrice` / `presetStopLossPrice` on the opening order
+2. **Manual limit + reduceOnly**: place a limit close order at target price after opening
+
 ## Module quick-reference
 
 | Module | Use for |
