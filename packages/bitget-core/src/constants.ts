@@ -11,8 +11,9 @@ export const MODULES = [
   "earn",
   "p2p",
   "broker",
+  "strategy",
 ] as const;
 
 export type ModuleId = (typeof MODULES)[number];
 
-export const DEFAULT_MODULES: ModuleId[] = ["spot", "futures", "account"];
+export const DEFAULT_MODULES: ModuleId[] = ["spot", "futures", "account", "strategy"];

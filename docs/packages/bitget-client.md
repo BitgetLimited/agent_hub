@@ -68,7 +68,7 @@ Auth:
 bgc <module> <tool_name> [--param1 value1] [--param2 value2] ...
 ```
 
-- `<module>` — one of: `spot`, `futures`, `account`, `margin`, `copytrading`, `convert`, `earn`, `p2p`, `broker`
+- `<module>` — one of: `spot`, `futures`, `account`, `margin`, `copytrading`, `convert`, `earn`, `p2p`, `broker`, `strategy`
 - `<tool_name>` — exact tool name (e.g. `spot_get_ticker`)
 - `--param value` — tool parameters as `--key value` pairs
 
@@ -157,6 +157,19 @@ bgc futures futures_place_order \
   --orderType limit \
   --price 60000 \
   --size 1
+```
+
+### Strategy Bots (auth required)
+
+```bash
+# View running strategy bots (grid, DCA, etc.)
+bgc strategy strategy_get_current_strategies
+
+# Filter bots by symbol
+bgc strategy strategy_get_current_strategies --symbol BTCUSDT
+
+# Get open orders for a specific grid strategy
+bgc strategy strategy_get_grid_open_orders --symbol BTCUSDT --id 123456789
 ```
 
 ## Output Format

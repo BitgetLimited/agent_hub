@@ -4,12 +4,13 @@ function printHelp(): void {
   process.stdout.write(`
 Usage: bgc <module> <tool> [--param value ...]
 
-Modules: spot, futures, account, margin, copytrading, convert, earn, p2p, broker
+Modules: spot, futures, account, margin, copytrading, convert, earn, p2p, broker, strategy
 
 Examples:
   bgc spot spot_get_ticker --symbol BTCUSDT
   bgc futures futures_get_positions
   bgc account account_get_balance
+  bgc strategy strategy_get_current_strategies
 
 Options:
   --read-only     Only allow read/query tools
