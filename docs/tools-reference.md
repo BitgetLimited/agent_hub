@@ -14,6 +14,7 @@
 - [Module: earn (3 tools, optional)](#module-earn)
 - [Module: p2p (2 tools, optional)](#module-p2p)
 - [Module: broker (3 tools, optional)](#module-broker)
+- [Module: strategy (2 tools, default)](#module-strategy)
 
 ---
 
@@ -1422,6 +1423,53 @@ Optional. Broker / affiliate management.
 
 ---
 
+<a id="module-strategy"></a>
+## Module: strategy (2 tools)
+
+Default loaded. Covers strategy trading (grid, DCA, etc.) bot management.
+
+---
+
+### strategy_get_current_strategies
+
+> Get current running strategy bots (grid, DCA, CTA, etc.).
+
+| Field | Value |
+|-------|-------|
+| Auth | Private |
+| Risk | [READ] |
+| Rate limit | 10 req/1s per UID |
+| Bitget API | `GET /api/v2/strategy/current-strategies` |
+
+**Parameters:**
+
+| Name | Type | Required | Description |
+|------|------|----------|-------------|
+| `symbol` | string | No | Filter by trading pair, e.g. `BTCUSDT` |
+| `strategyType` | string | No | Filter by type: `grid_spot`, `grid_futures`, `dca_spot`, `dca_futures`, `cta` |
+
+---
+
+### strategy_get_grid_open_orders
+
+> Get open orders of a specific grid strategy bot.
+
+| Field | Value |
+|-------|-------|
+| Auth | Private |
+| Risk | [READ] |
+| Rate limit | 10 req/1s per UID |
+| Bitget API | `GET /api/v2/strategy/grid-open-orders` |
+
+**Parameters:**
+
+| Name | Type | Required | Description |
+|------|------|----------|-------------|
+| `symbol` | string | Yes | Trading pair, e.g. `BTCUSDT` |
+| `id` | string | Yes | Strategy ID |
+
+---
+
 ## Appendix: Tool Count Summary
 
 | Module | Read Tools | Write Tools | Total | Default |
@@ -1435,6 +1483,7 @@ Optional. Broker / affiliate management.
 | earn | 2 | 1 | 3 | No |
 | p2p | 2 | 0 | 2 | No |
 | broker | 1 | 2 | 3 | No |
-| **Total** | **27** | **30** | **57** | **34** |
+| strategy | 2 | 0 | 2 | Yes |
+| **Total** | **29** | **30** | **59** | **36** |
 
-**Read-only mode** (`--read-only`): Exposes only the 27 read tools.
+**Read-only mode** (`--read-only`): Exposes only the 29 read tools.

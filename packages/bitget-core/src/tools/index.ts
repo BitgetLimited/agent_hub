@@ -10,6 +10,7 @@ import { registerMarginTools } from "./margin.js";
 import { registerP2pTools } from "./p2p.js";
 import { registerSpotMarketTools } from "./spot-market.js";
 import { registerSpotTradeTools } from "./spot-trade.js";
+import { registerStrategyTools } from "./strategy.js";
 import type { ToolSpec } from "./types.js";
 
 function allToolSpecs(): ToolSpec[] {
@@ -25,6 +26,7 @@ function allToolSpecs(): ToolSpec[] {
     ...registerEarnTools(),
     ...registerP2pTools(),
     ...registerBrokerTools(),
+    ...registerStrategyTools(),
   ];
 }
 
