@@ -3,8 +3,8 @@ import { ConfigError } from "./utils/errors.js";
 
 export interface CliOptions {
   modules?: string;
-  readOnly: boolean;
-  paperTrading: boolean;
+  readOnly?: boolean;
+  paperTrading?: boolean;
 }
 
 export interface BitgetConfig {
@@ -96,6 +96,13 @@ export function loadConfig(cli: CliOptions): BitgetConfig {
     );
   }
 
+  if (cli.paperTrading && cli.readOnly) {
+    throw new ConfigError(
+      "paperTrading and readOnly are mutually exclusive.",
+      "Use --paper-trading for simulated writes, or --read-only to block all writes — not both.",
+    );
+  }
+
   return {
     apiKey,
     secretKey,
@@ -104,7 +111,7 @@ export function loadConfig(cli: CliOptions): BitgetConfig {
     baseUrl: loadBaseUrl(),
     timeoutMs: loadTimeoutMs(),
     modules: parseModuleList(cli.modules),
-    readOnly: cli.readOnly,
-    paperTrading: cli.paperTrading,
+    readOnly: cli.readOnly ?? false,
+    paperTrading: cli.paperTrading ?? false,
   };
 }
