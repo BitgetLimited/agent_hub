@@ -12,13 +12,18 @@ Examples:
   bgc account account_get_balance
 
 Options:
-  --read-only     Only allow read/query tools
-  --pretty        Pretty-print JSON output
-  --help          Show this help
-  --version       Show version
+  --read-only       Only allow read/query tools
+  --paper-trading   Use Bitget Demo Trading environment (requires Demo API Key)
+  --pretty          Pretty-print JSON output
+  --help            Show this help
+  --version         Show version
 
 Auth (environment variables):
   BITGET_API_KEY, BITGET_SECRET_KEY, BITGET_PASSPHRASE
+
+Demo Trading:
+  Set BITGET_API_KEY etc. to your Demo API Key credentials, then:
+  bgc --paper-trading spot spot_get_ticker --symbol BTCUSDT
 `);
 }
 
@@ -47,6 +52,7 @@ async function main(): Promise<void> {
 
   const pretty = argv.includes("--pretty");
   const readOnly = argv.includes("--read-only");
+  const paperTrading = argv.includes("--paper-trading");
 
   // Parse --key value pairs as tool arguments
   const toolArgs: Record<string, unknown> = {};
@@ -55,7 +61,7 @@ async function main(): Promise<void> {
     const arg = allArgs[i];
     if (!arg || !arg.startsWith("--")) continue;
     const key = arg.slice(2);
-    if (key === "pretty" || key === "read-only" || key === "help" || key === "version") continue;
+    if (key === "pretty" || key === "read-only" || key === "paper-trading" || key === "help" || key === "version") continue;
     const next = allArgs[i + 1];
     if (next !== undefined && !next.startsWith("--")) {
       // Coerce CLI string values to their natural types so boolean
@@ -86,7 +92,7 @@ async function main(): Promise<void> {
     }
   }
 
-  const config = loadConfig({ modules: module, readOnly });
+  const config = loadConfig({ modules: module, readOnly, paperTrading });
   const client = new BitgetRestClient(config);
   const tools = buildTools(config);
   const tool = tools.find((t) => t.name === toolName);

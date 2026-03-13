@@ -112,5 +112,21 @@ describe("bgc CLI", () => {
       const output = JSON.parse(result.stdout);
       expect(output).toHaveProperty("data");
     });
+
+    it("--paper-trading flag is accepted and succeeds", async () => {
+      const result = await runCliAsync(
+        ["--paper-trading", "spot", "spot_get_ticker", "--symbol", "BTCUSDT"],
+        { BITGET_API_BASE_URL: baseUrl, BITGET_TIMEOUT_MS: "5000" },
+      );
+      expect(result.exitCode).toBe(0);
+      const output = JSON.parse(result.stdout);
+      expect(output).toHaveProperty("data");
+    });
+
+    it("--help mentions paper-trading", () => {
+      const result = runCli(["--help"]);
+      expect(result.status).toBe(0);
+      expect(result.stdout).toContain("paper-trading");
+    });
   });
 });
