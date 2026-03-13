@@ -112,6 +112,10 @@ export class BitgetRestClient {
       locale: "en-US",
     });
 
+    if (this.config.paperTrading) {
+      headers.set("paptrading", "1");
+    }
+
     if (config.auth === "private") {
       if (!this.config.hasAuth) {
         throw new ConfigError(
