@@ -50,6 +50,6 @@ All tools in that MCP session will operate in demo mode.
 ## Important Caveats
 
 - **Demo keys ≠ Live keys**: Never mix them. Demo keys only work with `--paper-trading`.
-- **Virtual funds only**: No real money is involved; balances reset periodically.
+- **Virtual funds only**: No real money is involved; balances can be reset manually via the Bitget demo dashboard.
 - **Real market data**: Prices reflect live market conditions.
 - **All modules supported**: Spot, futures, account, etc. all work in demo mode.
