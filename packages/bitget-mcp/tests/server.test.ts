@@ -1,4 +1,4 @@
-import { test, expect, beforeAll, beforeEach, afterAll } from "vitest";
+import { test, expect, beforeAll, beforeEach, afterAll, vi } from "vitest";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { InMemoryTransport } from "@modelcontextprotocol/sdk/inMemory.js";
 import { MockServer } from "bitget-test-utils";
@@ -81,8 +81,7 @@ test("error injection returns isError:true with error code", async () => {
   expect(result.isError).toBe(true);
 });
 
-test("createServer with paperTrading=true reflects in capabilities snapshot", async () => {
-  // Create a separate server with paperTrading=true
+test("createServer with paperTrading=true sends paptrading header on requests", async () => {
   const config = loadConfig({ modules: "spot", readOnly: false, paperTrading: true });
   const server = createServer(config);
   const [clientTransport, serverTransport] = InMemoryTransport.createLinkedPair();
@@ -90,11 +89,15 @@ test("createServer with paperTrading=true reflects in capabilities snapshot", as
   const client = new Client({ name: "pt-test-client", version: "1.0" }, { capabilities: {} });
   await client.connect(clientTransport);
 
-  const result = await client.callTool({ name: "system_get_capabilities", arguments: {} });
-  expect(result.isError).toBeFalsy();
-  const content = result.content as Array<{ text: string }>;
-  const parsed = JSON.parse(content[0]!.text) as Record<string, unknown>;
-  expect(parsed["ok"]).toBe(true);
+  // Spy on fetch to capture headers sent by the MCP server's HTTP client
+  const fetchSpy = vi.spyOn(globalThis, "fetch");
 
+  await client.callTool({ name: "spot_get_ticker", arguments: { symbol: "BTCUSDT" } });
+
+  const init = fetchSpy.mock.calls[0]?.[1];
+  const sentHeaders = new Headers(init?.headers as Record<string, string>);
+  expect(sentHeaders.get("paptrading")).toBe("1");
+
+  vi.restoreAllMocks();
   await client.close();
 });
