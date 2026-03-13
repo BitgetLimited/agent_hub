@@ -1,15 +1,17 @@
 ---
 name: bitget
 description: >
-  Use this skill whenever the user wants to interact with the Bitget cryptocurrency
-  exchange — including checking prices, viewing account balances, placing or cancelling
-  orders, managing futures positions, setting leverage, transferring funds, checking
-  funding rates, browsing earn products, or anything else involving Bitget trading data
-  or account operations. This applies even when the user doesn't say "Bitget" explicitly
-  — phrases like "check my balance", "what's the BTC price", "place a limit order",
-  "show my open positions", "set leverage to 10x", "how much USDT do I have" all
-  point to this skill. Always invoke this skill before attempting any Bitget-related
-  task from scratch.
+  Use this skill whenever the user wants to check prices, manage account balances,
+  place or cancel orders, manage futures or spot positions, set leverage, transfer
+  funds, check funding rates, use demo/paper trading, or do anything else on the
+  Bitget exchange. Invoke this skill even when the user doesn't say "Bitget" by name
+  — action phrases like "check my open orders", "cancel my BTC position", "move USDT
+  to futures", "what's my P&L", "place a market sell", "how much can I withdraw",
+  "show my positions", "set leverage to 10x", "what's the funding rate" all require
+  this skill. Also invoke for Chinese-language trading requests such as "查看我的账户",
+  "下一个限价单", "查看持仓盈亏", "转账到合约账户", "BTC现在多少钱" — these are Bitget
+  operations even without the exchange name. Always invoke this skill before attempting
+  any exchange trading task from scratch.
 ---
 
 # Bitget Skill
@@ -92,8 +94,8 @@ Note: `holdSide` (long/short) and `posMode` (one_way_mode/hedge_mode).
 | `futures` | Perpetuals prices, positions, futures orders, leverage |
 | `account` | Balances, deposits, withdrawals, transfers, subaccounts |
 | `margin` | Margin assets, borrow/repay, margin orders |
-| `copytrading` | Follow traders, copy positions |
-| `convert` | Convert one coin to another |
+| `copytrading` | Follow traders, copy positions. **Note:** Copy positions are separate from regular futures — use `copy_get_positions` and `copy_close_position`, NOT `futures_place_order`, to manage them |
+| `convert` | Convert one coin to another. **Two-step flow required:** call `convert_get_quote` first (returns a quote ID + rate, valid ~10s), then `convert_execute`. Always show the quoted rate to user before executing |
 | `earn` | Savings/staking products, subscribe/redeem |
 | `p2p` | P2P merchants and orders |
 | `broker` | Broker subaccounts and API keys |
@@ -109,6 +111,10 @@ Example confirmation:
 
 Never silently execute a write operation.
 
+**Withdrawal safety:** Always show the chain name and destination address in the confirmation prompt. Wrong chain selection is irreversible — if the user hasn't specified a chain, list available chains and ask them to confirm before proceeding.
+
+**Market buy size:** For spot market buys, `size` is in quote coin (USDT), not base coin. Confirm the user's intent before constructing market buy orders to avoid near-zero silent executes.
+
 ## Handling errors
 
 If `bgc` returns `"ok": false`, read `error.suggestion` for the recovery action.
@@ -120,7 +126,9 @@ When credentials are missing (`AUTH_MISSING`), show the user exactly which env v
 
 - For prices/tickers: show symbol, last price, 24h change, volume in a readable summary
 - For order lists: table format with orderId, symbol, side, price, size, status
-- For balances: list coins with available and frozen amounts; skip zero balances
+- For balances: list coins with available and frozen amounts; skip dust balances (< 0.0001)
+- For futures positions: always show symbol, side (long/short), size, entry price, mark price, unrealized PnL, **liquidation price**, and leverage. Never omit liquidation price
+- For funding rates: show current rate, annualized rate, and next settlement time
 - For raw data the user didn't ask to see: summarize, don't dump the full JSON
 
 ## Usage examples
