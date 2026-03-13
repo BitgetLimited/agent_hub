@@ -15,6 +15,8 @@ Options:
                        Default: spot,futures,account
 
   --read-only          Expose only read/query tools and disable write operations
+  --paper-trading      Enable Demo Trading mode (requires Demo API Key)
+                       All requests will include the paptrading: 1 header
   --help               Show this help message
   --version            Show version
 
@@ -28,11 +30,12 @@ Environment Variables:
   process.stdout.write(help);
 }
 
-function parseCli(): { modules?: string; readOnly: boolean; help: boolean; version: boolean } {
+function parseCli(): { modules?: string; readOnly: boolean; paperTrading?: boolean; help: boolean; version: boolean } {
   const parsed = parseArgs({
     options: {
       modules: { type: "string" },
       "read-only": { type: "boolean", default: false },
+      "paper-trading": { type: "boolean", default: false },
       help: { type: "boolean", default: false },
       version: { type: "boolean", default: false },
     },
@@ -41,6 +44,7 @@ function parseCli(): { modules?: string; readOnly: boolean; help: boolean; versi
   return {
     modules: parsed.values.modules,
     readOnly: parsed.values["read-only"],
+    paperTrading: parsed.values["paper-trading"],
     help: parsed.values.help,
     version: parsed.values.version,
   };
@@ -50,7 +54,7 @@ export async function main(): Promise<void> {
   const cli = parseCli();
   if (cli.help) { printHelp(); return; }
   if (cli.version) { process.stdout.write(`${SERVER_VERSION}\n`); return; }
-  const config = loadConfig({ modules: cli.modules, readOnly: cli.readOnly });
+  const config = loadConfig({ modules: cli.modules, readOnly: cli.readOnly, paperTrading: cli.paperTrading ?? false });
   const server = createServer(config);
   const transport = new StdioServerTransport();
   await server.connect(transport);

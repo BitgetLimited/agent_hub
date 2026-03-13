@@ -80,3 +80,21 @@ test("error injection returns isError:true with error code", async () => {
   const result = await mcpClient.callTool({ name: "spot_get_ticker", arguments: { symbol: "BTCUSDT" } });
   expect(result.isError).toBe(true);
 });
+
+test("createServer with paperTrading=true reflects in capabilities snapshot", async () => {
+  // Create a separate server with paperTrading=true
+  const config = loadConfig({ modules: "spot", readOnly: false, paperTrading: true });
+  const server = createServer(config);
+  const [clientTransport, serverTransport] = InMemoryTransport.createLinkedPair();
+  await server.connect(serverTransport);
+  const client = new Client({ name: "pt-test-client", version: "1.0" }, { capabilities: {} });
+  await client.connect(clientTransport);
+
+  const result = await client.callTool({ name: "system_get_capabilities", arguments: {} });
+  expect(result.isError).toBeFalsy();
+  const content = result.content as Array<{ text: string }>;
+  const parsed = JSON.parse(content[0]!.text) as Record<string, unknown>;
+  expect(parsed["ok"]).toBe(true);
+
+  await client.close();
+});
