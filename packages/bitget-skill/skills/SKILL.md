@@ -141,3 +141,20 @@ bgc spot spot_place_order --orders '[{"symbol":"BTCUSDT","side":"buy","orderType
 bgc futures futures_set_leverage --productType USDT-FUTURES --symbol BTCUSDT --marginCoin USDT --leverage 10
 bgc account transfer --fromAccountType spot --toAccountType futures_usdt --coin USDT --amount 100
 ```
+
+## Demo Trading Mode
+
+Use demo mode when the user wants to practice trading, test strategies, or explicitly asks for "demo", "paper trading", or "simulated trading".
+
+**Setup:** The user needs a Bitget Demo API Key. See `~/.claude/skills/bitget-skill/references/demo-trading.md` for full setup steps.
+
+**For bgc CLI:** Add `--paper-trading` as the FIRST flag after `bgc`:
+```bash
+bgc --paper-trading spot spot_get_ticker --symbol BTCUSDT
+bgc --paper-trading futures futures_get_positions --productType USDT-FUTURES
+bgc --paper-trading account get_account_assets
+```
+
+**For MCP tools:** The MCP server must be started with `--paper-trading`. If the user is asking to use demo mode via MCP but the server wasn't started with that flag, inform them they need to restart with `--paper-trading`.
+
+**Key rule:** In demo mode, add `--paper-trading` to EVERY bgc command in the session. Never mix demo and live commands in the same session.

@@ -38,7 +38,7 @@ const TARGETS = {
   },
 };
 
-const REF_FILES = ["commands.md", "error-codes.md", "auth-setup.md"];
+const REF_FILES = ["commands.md", "error-codes.md", "auth-setup.md", "demo-trading.md"];
 
 function installTo(targetKey) {
   const target = TARGETS[targetKey];
