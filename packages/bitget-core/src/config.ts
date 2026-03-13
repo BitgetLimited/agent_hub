@@ -4,6 +4,7 @@ import { ConfigError } from "./utils/errors.js";
 export interface CliOptions {
   modules?: string;
   readOnly: boolean;
+  paperTrading: boolean;
 }
 
 export interface BitgetConfig {
@@ -15,6 +16,7 @@ export interface BitgetConfig {
   timeoutMs: number;
   modules: ModuleId[];
   readOnly: boolean;
+  paperTrading: boolean;
 }
 
 function parseModuleList(rawModules?: string): ModuleId[] {
@@ -103,5 +105,6 @@ export function loadConfig(cli: CliOptions): BitgetConfig {
     timeoutMs: loadTimeoutMs(),
     modules: parseModuleList(cli.modules),
     readOnly: cli.readOnly,
+    paperTrading: cli.paperTrading,
   };
 }
