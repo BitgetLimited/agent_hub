@@ -30,3 +30,5 @@ npm-debug.log*
 
 # OMC state and session files
 .omc/
+
+bitget-skill-workspace
