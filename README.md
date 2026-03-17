@@ -56,7 +56,9 @@ A built-in collection of market-analysis skills for Claude Code. Each skill inst
 
 ### Required: Market Data MCP Server
 
-All Skill Hub skills depend on the **market-data MCP server**. Add it to Claude Code before using the skills:
+All Skill Hub skills depend on the **market-data MCP server** (SSE). No API key required — the server provides public market data.
+
+#### Claude Code
 
 ```bash
 claude mcp add -s user \
@@ -65,7 +67,20 @@ claude mcp add -s user \
   -- https://datahub.noxiaohao.com/sse
 ```
 
-For other clients, add the SSE endpoint to your MCP config:
+#### Codex
+
+Add to `~/.codex/config.toml` (or the project-level `codex.toml`):
+
+```toml
+[[mcp_servers]]
+name = "market-data"
+type = "sse"
+url = "https://datahub.noxiaohao.com/sse"
+```
+
+#### OpenClaw
+
+Add to your OpenClaw agent config:
 
 ```json
 {
@@ -77,8 +92,6 @@ For other clients, add the SSE endpoint to your MCP config:
   }
 }
 ```
-
-No API key required — the server provides public market data.
 
 ---
 
