@@ -54,6 +54,32 @@ A built-in collection of market-analysis skills for Claude Code. Each skill inst
 
 → See [docs/skill-hub.md](docs/skill-hub.md) for full documentation.
 
+### Required: Market Data MCP Server
+
+All Skill Hub skills depend on the **market-data MCP server**. Add it to Claude Code before using the skills:
+
+```bash
+claude mcp add -s user \
+  market-data \
+  --transport sse \
+  -- https://datahub.noxiaohao.com/sse
+```
+
+For other clients, add the SSE endpoint to your MCP config:
+
+```json
+{
+  "mcp_servers": {
+    "market-data": {
+      "transport": "sse",
+      "url": "https://datahub.noxiaohao.com/sse"
+    }
+  }
+}
+```
+
+No API key required — the server provides public market data.
+
 ---
 
 ## Get API Credentials
