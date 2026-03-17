@@ -2,20 +2,6 @@
 
 Auto-generated from bitget-core tool definitions.
 
-## Table of Contents
-
-- [spot](#module-spot) — spot_get_ticker, spot_get_depth, spot_get_candles, spot_get_trades, spot_get_symbols, spot_place_order, spot_cancel_orders, spot_modify_order, spot_get_orders, spot_get_fills, spot_place_plan_order, spot_get_plan_orders, spot_cancel_plan_orders
-- [futures](#module-futures) — futures_get_ticker, futures_get_depth, futures_get_candles, futures_get_trades, futures_get_contracts, futures_get_funding_rate, futures_get_open_interest, futures_place_order, futures_cancel_orders, futures_get_orders, futures_get_fills, futures_get_positions, futures_set_leverage, futures_update_config
-- [account](#module-account) — get_account_assets, get_account_bills, transfer, withdraw, cancel_withdrawal, get_deposit_address, get_transaction_records, manage_subaccounts
-- [margin](#module-margin) — margin_get_assets, margin_borrow, margin_repay, margin_place_order, margin_cancel_orders, margin_get_orders, margin_get_records
-- [copytrading](#module-copytrading) — copy_get_traders, copy_place_order, copy_close_position, copy_get_orders, copy_get_positions
-- [convert](#module-convert) — convert_get_quote, convert_execute, convert_get_history
-- [earn](#module-earn) — earn_get_products, earn_subscribe_redeem, earn_get_holdings
-- [p2p](#module-p2p) — p2p_get_merchants, p2p_get_orders
-- [broker](#module-broker) — broker_get_info, broker_manage_subaccounts, broker_manage_apikeys
-
-> **Write operations** (marked ✏️) require user confirmation before execution.
-
 ## Usage
 
 ```
@@ -211,7 +197,7 @@ Get spot fills for order execution details. Private endpoint. Rate limit: 10 req
 
 | Name | Type | Required | Description |
 |------|------|----------|-------------|
-| `symbol` | string | Yes | Trading pair symbol. |
+| `symbol` | string | No | Trading pair symbol. |
 | `orderId` | string | No | Specific order id. |
 | `startTime` | string | No | Start time in milliseconds. |
 | `endTime` | string | No | End time in milliseconds. |
@@ -256,7 +242,7 @@ Get current or historical spot plan orders. Private endpoint. Rate limit: 10 req
 
 | Name | Type | Required | Description |
 |------|------|----------|-------------|
-| `symbol` | string | Yes | Trading pair symbol. |
+| `symbol` | string | No | Trading pair symbol. |
 | `status` | string | No | current(default) or history. |
 | `startTime` | string | No | Start time in milliseconds. |
 | `endTime` | string | No | End time in milliseconds. |
@@ -278,12 +264,11 @@ Cancel one or multiple spot plan orders. Private endpoint. Rate limit: 10 req/s 
 | Name | Type | Required | Description |
 |------|------|----------|-------------|
 | `orderId` | string | No | Single plan order id. |
-| `orderIds` | array | No | Multiple plan order ids. |
 | `symbol` | string | No | Cancel all plan orders for symbol. |
 
 **Example:**
 ```bash
-bgc spot spot_cancel_plan_orders --orderId <value> --orderIds <value>
+bgc spot spot_cancel_plan_orders --orderId <value> --symbol <value>
 ```
 
 ## Module: futures
@@ -633,6 +618,8 @@ Transfer funds between accounts or sub-account. [CAUTION] Moves funds. Private e
 | `coin` | string | Yes |  |
 | `amount` | string | Yes |  |
 | `subAccountUid` | string | No |  |
+| `fromUserId` | string | No | Sub-account user ID (sender). If omitted, subAccountUid is used as fallback. |
+| `toUserId` | string | No | Sub-account user ID (recipient). |
 | `symbol` | string | No |  |
 | `clientOid` | string | No |  |
 
@@ -735,9 +722,13 @@ Create, modify, list subaccounts and manage subaccount API keys. [CAUTION] Accou
 | `subAccountName` | string | No |  |
 | `subAccountUid` | string | No |  |
 | `remark` | string | No |  |
-| `apiKeyPermissions` | string | No |  |
-| `apiKeyIp` | string | No |  |
+| `permList` | array | No | Permission list (required for modify, createApiKey, modifyApiKey). |
+| `status` | string | No | Sub-account status (required for modify). |
+| `apiKeyPermissions` | string | No | Single permission string (backward compat; prefer permList). |
+| `apiKeyIp` | string | No | Single IP string (backward compat; prefer ipList). |
 | `apiKeyPassphrase` | string | No |  |
+| `label` | string | No | API key label (required for createApiKey/modifyApiKey). |
+| `subAccountApiKey` | string | No | The API key to modify (required for modifyApiKey). |
 
 **Example:**
 ```bash
@@ -778,7 +769,7 @@ Borrow margin funds. [CAUTION] Creates debt. Private endpoint. Rate limit: 10 re
 | `marginType` | string | Yes |  |
 | `coin` | string | Yes |  |
 | `amount` | string | Yes |  |
-| `symbol` | string | No |  |
+| `symbol` | string | No | Required for isolated margin. |
 
 **Example:**
 ```bash
@@ -787,7 +778,7 @@ bgc margin margin_borrow --marginType <value> --coin <value>
 
 ### `margin_repay`
 
-Repay margin debt with optional flash repay. [CAUTION] Uses account funds. Private endpoint. Rate limit: 10 req/s per UID.
+Repay margin debt with optional flash repay. [CAUTION] Uses account funds. Private endpoint. Rate limit: 10 req/s per UID. For flash repay, coin is optional (omit to repay all). For isolated flash repay, symbol filters which pairs to repay.
 
 **Write operation:** Yes — requires confirmation
 
@@ -796,9 +787,9 @@ Repay margin debt with optional flash repay. [CAUTION] Uses account funds. Priva
 | Name | Type | Required | Description |
 |------|------|----------|-------------|
 | `marginType` | string | Yes |  |
-| `coin` | string | Yes |  |
-| `amount` | string | No |  |
-| `symbol` | string | No |  |
+| `coin` | string | No | Required for regular repay. Optional for flash repay (omit to repay all). |
+| `amount` | string | No | Required for regular repay. |
+| `symbol` | string | No | Required for isolated regular repay. Optional for isolated flash repay. |
 | `flashRepay` | boolean | No |  |
 
 **Example:**
@@ -808,7 +799,7 @@ bgc margin margin_repay --marginType <value> --coin <value>
 
 ### `margin_place_order`
 
-Place margin order in crossed or isolated mode. [CAUTION] Executes real trade. Private endpoint. Rate limit: 10 req/s per UID.
+Place margin order in crossed or isolated mode. [CAUTION] Executes real trade. Private endpoint. Rate limit: 10 req/s per UID. For market buy orders, use quoteSize (quote currency amount) instead of size.
 
 **Write operation:** Yes — requires confirmation
 
@@ -821,7 +812,8 @@ Place margin order in crossed or isolated mode. [CAUTION] Executes real trade. P
 | `side` | string | Yes |  |
 | `orderType` | string | Yes |  |
 | `price` | string | No |  |
-| `size` | string | Yes |  |
+| `size` | string | No | Base currency size. For market buy, use quoteSize instead. |
+| `quoteSize` | string | No | Quote currency size. Required for market buy orders. |
 | `loanType` | string | No |  |
 
 **Example:**
@@ -851,7 +843,7 @@ bgc margin margin_cancel_orders --marginType <value> --symbol <value>
 
 ### `margin_get_orders`
 
-Query margin orders (open/history/order detail). Private endpoint. Rate limit: 10 req/s per UID.
+Query margin orders (open/history/order detail). Private endpoint. Rate limit: 10 req/s per UID. Note: symbol and startTime are required by the API for open-orders queries.
 
 **Write operation:** No
 
@@ -860,10 +852,10 @@ Query margin orders (open/history/order detail). Private endpoint. Rate limit: 1
 | Name | Type | Required | Description |
 |------|------|----------|-------------|
 | `marginType` | string | Yes |  |
-| `symbol` | string | No |  |
+| `symbol` | string | No | Required for open-orders queries per API docs. |
 | `orderId` | string | No |  |
 | `status` | string | No |  |
-| `startTime` | string | No |  |
+| `startTime` | string | No | Required for open-orders queries per API docs. |
 | `endTime` | string | No |  |
 | `limit` | number | No |  |
 
@@ -927,13 +919,14 @@ Create or update copy-trading follow settings. [CAUTION] Changes copy-trading be
 | Name | Type | Required | Description |
 |------|------|----------|-------------|
 | `productType` | string | Yes |  |
-| `traderId` | string | No | Required trader id. For spot copy this is traderUserId. For futures copy this is traderId. |
-| `symbol` | string | No | Optional symbol for spot copy settings. |
+| `traderId` | string | No | Required trader id. |
+| `symbol` | string | No | Symbol for copy settings. |
 | `leverageType` | string | No | Futures copy leverage type. Default position. |
-| `traceType` | string | No | Futures copy size mode. Default amount. |
-| `marginType` | string | No | Futures margin type. Default cross. |
-| `amount` | string | No | Trace amount (for amount mode). |
-| `ratio` | string | No | Trace ratio (for ratio mode). |
+| `traceType` | string | No | Copy size mode. Default amount. |
+| `marginType` | string | No | Futures margin type. Default trader. |
+| `amount` | string | No | Trace amount/value (mapped to traceValue). |
+| `ratio` | string | No | Trace ratio (mapped to traceValue when traceType=ratio). |
+| `maxHoldSize` | string | No | Max hold size for spot copy settings. |
 | `autoSelectTrader` | boolean | No | When true (or traderId omitted), auto-select trader from query-traders list. |
 | `selectionPolicy` | string | No | Trader auto-selection policy. Default recommended. |
 | `dryRun` | boolean | No | When true, resolve trader and return payload preview without sending write request. |
@@ -1088,11 +1081,11 @@ Query available earn products such as savings and staking. Private endpoint. Rat
 | Name | Type | Required | Description |
 |------|------|----------|-------------|
 | `coin` | string | No |  |
-| `productType` | string | No |  |
+| `filter` | string | No |  |
 
 **Example:**
 ```bash
-bgc earn earn_get_products --coin <value> --productType <value>
+bgc earn earn_get_products --coin <value> --filter <value>
 ```
 
 ### `earn_subscribe_redeem`
@@ -1108,7 +1101,8 @@ Subscribe or redeem earn products. [CAUTION] Locks/releases funds. Private endpo
 | `action` | string | Yes |  |
 | `productId` | string | Yes |  |
 | `amount` | string | Yes |  |
-| `coin` | string | Yes |  |
+| `periodType` | string | Yes |  |
+| `orderId` | string | No |  |
 
 **Example:**
 ```bash
@@ -1126,11 +1120,11 @@ Get current earn holdings and earnings records. Private endpoint. Rate limit: 10
 | Name | Type | Required | Description |
 |------|------|----------|-------------|
 | `coin` | string | No |  |
-| `productId` | string | No |  |
+| `periodType` | string | Yes |  |
 
 **Example:**
 ```bash
-bgc earn earn_get_holdings --coin <value> --productId <value>
+bgc earn earn_get_holdings --coin <value> --periodType <value>
 ```
 
 ## Module: p2p
@@ -1166,6 +1160,9 @@ Get P2P order list or advertisement list. Private endpoint. Rate limit: 10 req/s
 | `status` | string | No |  |
 | `startTime` | string | No |  |
 | `endTime` | string | No |  |
+| `side` | string | No | Required for advertisements: buy or sell. |
+| `coin` | string | No | Required for advertisements: coin to trade. |
+| `fiat` | string | No | Required for advertisements: fiat currency. |
 
 **Example:**
 ```bash
@@ -1198,8 +1195,12 @@ Create, modify, or list broker subaccounts. Private endpoint. Rate limit: 5 req/
 | `action` | string | Yes |  |
 | `subAccountUid` | string | No |  |
 | `subAccountName` | string | No |  |
-| `remark` | string | No |  |
+| `permList` | array | No |  |
+| `status` | string | No |  |
 | `limit` | number | No |  |
+| `idLessThan` | string | No |  |
+| `startTime` | string | No |  |
+| `endTime` | string | No |  |
 
 **Example:**
 ```bash
@@ -1208,7 +1209,7 @@ bgc broker broker_manage_subaccounts --action <value> --subAccountUid <value>
 
 ### `broker_manage_apikeys`
 
-Create, modify, or list API keys for broker subaccounts. Private endpoint. Rate limit: 5 req/s per UID.
+Create, modify, list, or delete API keys for broker subaccounts. Private endpoint. Rate limit: 5 req/s per UID.
 
 **Write operation:** Yes — requires confirmation
 
@@ -1221,6 +1222,9 @@ Create, modify, or list API keys for broker subaccounts. Private endpoint. Rate 
 | `apiKeyPermissions` | string | No |  |
 | `apiKeyIp` | string | No |  |
 | `apiKeyPassphrase` | string | No |  |
+| `label` | string | No |  |
+| `permType` | string | No |  |
+| `apiKey` | string | No |  |
 
 **Example:**
 ```bash
