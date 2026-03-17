@@ -60,7 +60,8 @@ export function registerFuturesTradeRoutes(router: Router): void {
   });
 
   router.register("POST", "/api/v2/mix/order/batch-cancel-orders", (_req, body, _query, state) => {
-    const orderIds = (body["orderIds"] as string[]) ?? [];
+    const orderIdList = (body["orderIdList"] as { orderId: string }[]) ?? [];
+    const orderIds = orderIdList.map((item) => item.orderId);
     orderIds.forEach((id) => {
       const o = state.futuresOrders.get(id);
       if (o) { o.status = "cancelled"; o.uTime = Date.now().toString(); }

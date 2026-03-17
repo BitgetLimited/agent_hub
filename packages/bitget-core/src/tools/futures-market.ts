@@ -143,24 +143,30 @@ export function registerFuturesMarketTools(): ToolSpec[] {
         const startTime = readString(args, "startTime");
         const endTime = readString(args, "endTime");
         const limit = readNumber(args, "limit");
-        const path =
-          priceType === "index"
-            ? "/api/v2/mix/market/history-index-candles"
-            : priceType === "mark"
-              ? "/api/v2/mix/market/history-mark-candles"
-              : startTime
-                ? "/api/v2/mix/market/history-candles"
-                : "/api/v2/mix/market/candles";
+        let path: string;
+        let queryParams: Record<string, unknown>;
+        if (priceType === "index" && startTime) {
+          path = "/api/v2/mix/market/history-index-candles";
+          queryParams = compactObject({ productType, symbol, granularity: apiGranularity, startTime, endTime, limit });
+        } else if (priceType === "mark" && startTime) {
+          path = "/api/v2/mix/market/history-mark-candles";
+          queryParams = compactObject({ productType, symbol, granularity: apiGranularity, startTime, endTime, limit });
+        } else if (priceType === "trade" && startTime) {
+          path = "/api/v2/mix/market/history-candles";
+          queryParams = compactObject({ productType, symbol, granularity: apiGranularity, startTime, endTime, limit });
+        } else if (priceType === "index") {
+          path = "/api/v2/mix/market/candles";
+          queryParams = compactObject({ productType, symbol, granularity: apiGranularity, kLineType: "INDEX", endTime, limit });
+        } else if (priceType === "mark") {
+          path = "/api/v2/mix/market/candles";
+          queryParams = compactObject({ productType, symbol, granularity: apiGranularity, kLineType: "MARK", endTime, limit });
+        } else {
+          path = "/api/v2/mix/market/candles";
+          queryParams = compactObject({ productType, symbol, granularity: apiGranularity, endTime, limit });
+        }
         const response = await context.client.publicGet(
           path,
-          compactObject({
-            productType,
-            symbol,
-            granularity: apiGranularity,
-            startTime,
-            endTime,
-            limit,
-          }),
+          queryParams,
           publicRateLimit("futures_get_candles", 20),
         );
         return normalize(response);

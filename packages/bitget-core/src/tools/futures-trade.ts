@@ -159,11 +159,11 @@ export function registerFuturesTradeTools(): ToolSpec[] {
           : orderIds
             ? {
                 path: "/api/v2/mix/order/batch-cancel-orders",
-                body: { productType, symbol, orderIds },
+                body: { productType, symbol, orderIdList: orderIds.map((id) => ({ orderId: id })) },
               }
             : {
                 path: "/api/v2/mix/order/cancel-all-orders",
-                body: compactObject({ productType, symbol, marginCoin }),
+                body: compactObject({ productType, marginCoin }),
               };
         const response = await context.client.privatePost(
           path,
@@ -381,12 +381,9 @@ export function registerFuturesTradeTools(): ToolSpec[] {
             : setting === "positionMode"
               ? compactObject({
                   productType,
-                  symbol: requireString(args, "symbol"),
-                  marginCoin: requireString(args, "marginCoin"),
                   posMode: requireString(args, "value"),
                 })
               : compactObject({
-                  productType,
                   symbol: requireString(args, "symbol"),
                   marginCoin: requireString(args, "marginCoin"),
                   autoMargin: requireString(args, "value"),

@@ -2,15 +2,11 @@ import type { Router } from "../router.js";
 import { nextId } from "../state.js";
 
 export function registerEarnRoutes(router: Router): void {
-  for (const path of ["/api/v2/earn/product/list", "/api/v2/earn/saving/product/list"]) {
-    router.register("GET", path, (_req, _body, _query, state) => state.earnProducts);
-  }
+  router.register("GET", "/api/v2/earn/savings/product", (_req, _body, _query, state) => state.earnProducts);
 
-  for (const path of ["/api/v2/earn/holding/list", "/api/v2/earn/saving/holding/list"]) {
-    router.register("GET", path, (_req, _body, _query, state) => [...state.earnHoldings.values()]);
-  }
+  router.register("GET", "/api/v2/earn/savings/assets", (_req, _body, _query, state) => [...state.earnHoldings.values()]);
 
-  router.register("POST", "/api/v2/earn/subscribe", (_req, body, _query, state) => {
+  router.register("POST", "/api/v2/earn/savings/subscribe", (_req, body, _query, state) => {
     const holdingId = nextId(state, "EARN");
     const productId = body["productId"] as string;
     const product = state.earnProducts.find((p) => p.productId === productId);
@@ -24,7 +20,7 @@ export function registerEarnRoutes(router: Router): void {
     return { holdingId };
   });
 
-  router.register("POST", "/api/v2/earn/redeem", (_req, body, _query, state) => {
+  router.register("POST", "/api/v2/earn/savings/redeem", (_req, body, _query, state) => {
     const holdingId = body["holdingId"] as string;
     const h = state.earnHoldings.get(holdingId);
     if (h) h.status = "redeemed";

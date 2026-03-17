@@ -23,14 +23,19 @@ export function registerBrokerRoutes(router: Router): void {
     return { subUid };
   });
 
-  router.register("GET", "/api/v2/broker/account/subaccount-apikey-list", () => []);
+  router.register("GET", "/api/v2/broker/manage/subaccount-apikey-list", () => []);
 
-  router.register("POST", "/api/v2/broker/account/create-subaccount-apikey", (_req, body, _query, state) => ({
+  router.register("POST", "/api/v2/broker/manage/create-subaccount-apikey", (_req, body, _query, state) => ({
     subUid: body["subUid"],
     apiKey: "mock-broker-apikey-" + nextId(state, "BK"),
   }));
 
-  router.register("POST", "/api/v2/broker/account/modify-subaccount-apikey", (_req, body) => ({
+  router.register("POST", "/api/v2/broker/manage/modify-subaccount-apikey", (_req, body) => ({
+    subUid: body["subUid"],
+    apiKey: body["apiKey"],
+  }));
+
+  router.register("POST", "/api/v2/broker/manage/delete-subaccount-apikey", (_req, body) => ({
     subUid: body["subUid"],
     apiKey: body["apiKey"],
   }));

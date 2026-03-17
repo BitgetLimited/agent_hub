@@ -54,6 +54,11 @@ export function registerConvertTools(): ToolSpec[] {
             'Provide only one of "fromCoinAmount" or "toCoinAmount".',
           );
         }
+        if (fromCoin && !readString(args, "toCoin")) {
+          throw new ValidationError(
+            'Parameter "toCoin" is required when "fromCoin" is provided.',
+          );
+        }
         const response = await context.client.privateGet(
           path,
           compactObject({
@@ -100,7 +105,6 @@ export function registerConvertTools(): ToolSpec[] {
             path,
             compactObject({
               coinList: readStringArray(args, "coinList"),
-              traceId: readString(args, "traceId") ?? `mcp-${Date.now()}`,
             }),
             privateRateLimit("convert_execute", 5),
           );

@@ -121,7 +121,7 @@ export function registerSpotTradeTools(): ToolSpec[] {
           : orderIds
             ? {
                 path: "/api/v2/spot/trade/batch-cancel-order",
-                body: { symbol, orderIds },
+                body: { symbol, orderList: orderIds!.map((id) => ({ orderId: id })) },
               }
             : cancelAll
               ? {
@@ -174,8 +174,7 @@ export function registerSpotTradeTools(): ToolSpec[] {
             orderId: requireString(args, "orderId"),
             price: newPrice,
             size: newSize,
-            clientOid: newClientOid,
-            force: "gtc",
+            newClientOid: newClientOid,
           }),
           privateRateLimit("spot_modify_order", 10),
         );
@@ -249,14 +248,13 @@ export function registerSpotTradeTools(): ToolSpec[] {
           endTime: { type: "string", description: "End time in milliseconds." },
           limit: { type: "number", description: "Result size, default 100." },
         },
-        required: ["symbol"],
       },
       handler: async (rawArgs, context) => {
         const args = asRecord(rawArgs);
         const response = await context.client.privateGet(
           "/api/v2/spot/trade/fills",
           compactObject({
-            symbol: requireString(args, "symbol"),
+            symbol: readString(args, "symbol"),
             orderId: readString(args, "orderId"),
             startTime: readString(args, "startTime"),
             endTime: readString(args, "endTime"),
@@ -282,7 +280,7 @@ export function registerSpotTradeTools(): ToolSpec[] {
           triggerPrice: { type: "string", description: "Trigger price." },
           triggerType: {
             type: "string",
-            enum: ["mark_price", "fill_price", "last_price"],
+            enum: ["mark_price", "fill_price"],
             description: "Trigger source.",
           },
           orderType: {
@@ -309,7 +307,7 @@ export function registerSpotTradeTools(): ToolSpec[] {
             symbol: readString(args, "symbol"),
             side: readString(args, "side"),
             triggerPrice: requireString(args, "triggerPrice"),
-            triggerType: rawTriggerType === "last_price" ? "fill_price" : rawTriggerType,
+            triggerType: rawTriggerType,
             orderType: readString(args, "orderType"),
             executePrice: readString(args, "price"),
             planType: "amount",
@@ -339,7 +337,6 @@ export function registerSpotTradeTools(): ToolSpec[] {
           endTime: { type: "string", description: "End time in milliseconds." },
           limit: { type: "number", description: "Result size, default 100." },
         },
-        required: ["symbol"],
       },
       handler: async (rawArgs, context) => {
         const args = asRecord(rawArgs);
@@ -351,7 +348,7 @@ export function registerSpotTradeTools(): ToolSpec[] {
         const response = await context.client.privateGet(
           path,
           compactObject({
-            symbol: requireString(args, "symbol"),
+            symbol: readString(args, "symbol"),
             startTime: readString(args, "startTime"),
             endTime: readString(args, "endTime"),
             limit: readNumber(args, "limit"),
@@ -371,31 +368,24 @@ export function registerSpotTradeTools(): ToolSpec[] {
         type: "object",
         properties: {
           orderId: { type: "string", description: "Single plan order id." },
-          orderIds: {
-            type: "array",
-            description: "Multiple plan order ids.",
-            items: { type: "string" },
-          },
           symbol: { type: "string", description: "Cancel all plan orders for symbol." },
         },
       },
       handler: async (rawArgs, context) => {
         const args = asRecord(rawArgs);
         const orderId = readString(args, "orderId");
-        const orderIds = readStringArray(args, "orderIds");
         const symbol = readString(args, "symbol");
         ensureOneOf(
           args,
-          ["orderId", "orderIds", "symbol"],
-          'Provide one of "orderId", "orderIds", or "symbol".',
+          ["orderId", "symbol"],
+          'Provide one of "orderId" or "symbol".',
         );
-        if (orderIds && orderIds.length > 50) {
-          throw new ValidationError("orderIds supports at most 50 items.");
-        }
         const path = orderId
           ? "/api/v2/spot/trade/cancel-plan-order"
           : "/api/v2/spot/trade/batch-cancel-plan-order";
-        const body = compactObject({ orderId, orderIds, symbol });
+        const body = orderId
+          ? { orderId }
+          : { symbolList: [symbol] };
         const response = await context.client.privatePost(
           path,
           body,

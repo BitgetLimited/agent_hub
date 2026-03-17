@@ -42,6 +42,8 @@ export function registerMarginRoutes(router: Router): void {
       return { marginCoin: "USDT", available: usdt?.available ?? "0", risk: "0.1" };
     });
 
+    router.register("GET", `/api/v2/margin/${scope}/borrow-history`, () => []);
+    router.register("GET", `/api/v2/margin/${scope}/repay-history`, () => []);
     router.register("GET", `/api/v2/margin/${scope}/interest-history`, () => []);
     router.register("GET", `/api/v2/margin/${scope}/liquidation-history`, () => []);
   }

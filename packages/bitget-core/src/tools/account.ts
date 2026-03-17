@@ -5,6 +5,7 @@ import {
   compactObject,
   readNumber,
   readString,
+  readStringArray,
   requireString,
 } from "./helpers.js";
 import { privateRateLimit, PRODUCT_TYPES } from "./common.js";
@@ -134,6 +135,8 @@ export function registerAccountTools(): ToolSpec[] {
           coin: { type: "string" },
           amount: { type: "string" },
           subAccountUid: { type: "string" },
+          fromUserId: { type: "string", description: "Sub-account user ID (sender). If omitted, subAccountUid is used as fallback." },
+          toUserId: { type: "string", description: "Sub-account user ID (recipient)." },
           symbol: { type: "string" },
           clientOid: { type: "string" },
         },
@@ -142,7 +145,10 @@ export function registerAccountTools(): ToolSpec[] {
       handler: async (rawArgs, context) => {
         const args = asRecord(rawArgs);
         const subAccountUid = readString(args, "subAccountUid");
-        const path = subAccountUid
+        const fromUserId = readString(args, "fromUserId") ?? subAccountUid;
+        const toUserId = readString(args, "toUserId");
+        const isSubTransfer = !!(fromUserId || toUserId);
+        const path = isSubTransfer
           ? "/api/v2/spot/wallet/subaccount-transfer"
           : "/api/v2/spot/wallet/transfer";
         const response = await context.client.privatePost(
@@ -154,7 +160,8 @@ export function registerAccountTools(): ToolSpec[] {
             amount: requireString(args, "amount"),
             symbol: readString(args, "symbol"),
             clientOid: readString(args, "clientOid"),
-            subAccountUid,
+            fromUserId,
+            toUserId,
           }),
           privateRateLimit("transfer", 10),
         );
@@ -191,7 +198,7 @@ export function registerAccountTools(): ToolSpec[] {
             transferType,
             address: requireString(args, "address"),
             chain: readString(args, "chain"),
-            amount: requireString(args, "amount"),
+            size: requireString(args, "amount"),
             tag: readString(args, "tag"),
             clientOid: readString(args, "clientOid"),
           }),
@@ -290,14 +297,8 @@ export function registerAccountTools(): ToolSpec[] {
           path,
           compactObject({
             coin: readString(args, "coin"),
-            startTime:
-              recordType === "deposit" || recordType === "transfer"
-                ? (startTime ?? defaultStartTime)
-                : startTime,
-            endTime:
-              recordType === "deposit" || recordType === "transfer"
-                ? (endTime ?? defaultEndTime)
-                : endTime,
+            startTime: startTime ?? defaultStartTime,
+            endTime: endTime ?? defaultEndTime,
             limit: readNumber(args, "limit"),
             orderId: readString(args, "orderId"),
           }),
@@ -329,9 +330,13 @@ export function registerAccountTools(): ToolSpec[] {
           subAccountName: { type: "string" },
           subAccountUid: { type: "string" },
           remark: { type: "string" },
-          apiKeyPermissions: { type: "string" },
-          apiKeyIp: { type: "string" },
+          permList: { type: "array", items: { type: "string" }, description: "Permission list (required for modify, createApiKey, modifyApiKey)." },
+          status: { type: "string", description: "Sub-account status (required for modify)." },
+          apiKeyPermissions: { type: "string", description: "Single permission string (backward compat; prefer permList)." },
+          apiKeyIp: { type: "string", description: "Single IP string (backward compat; prefer ipList)." },
           apiKeyPassphrase: { type: "string" },
+          label: { type: "string", description: "API key label (required for createApiKey/modifyApiKey)." },
+          subAccountApiKey: { type: "string", description: "The API key to modify (required for modifyApiKey)." },
         },
         required: ["action"],
       },
@@ -346,19 +351,12 @@ export function registerAccountTools(): ToolSpec[] {
           "modifyApiKey",
           "listApiKeys",
         ]);
-        const common = compactObject({
-          subAccountName: readString(args, "subAccountName"),
-          subAccountUid: readString(args, "subAccountUid"),
-          remark: readString(args, "remark"),
-          apiKeyPermissions: readString(args, "apiKeyPermissions"),
-          apiKeyIp: readString(args, "apiKeyIp"),
-          apiKeyPassphrase: readString(args, "apiKeyPassphrase"),
-        });
+        const subAccountUid = readString(args, "subAccountUid");
 
         if (action === "list") {
           const response = await context.client.privateGet(
             "/api/v2/user/virtual-subaccount-list",
-            common,
+            compactObject({ subAccountUid }),
             privateRateLimit("manage_subaccounts", 5),
           );
           return normalize(response);
@@ -367,23 +365,58 @@ export function registerAccountTools(): ToolSpec[] {
         if (action === "listApiKeys") {
           const response = await context.client.privateGet(
             "/api/v2/user/virtual-subaccount-apikey-list",
-            common,
+            compactObject({ subAccountUid }),
             privateRateLimit("manage_subaccounts", 5),
           );
           return normalize(response);
         }
 
+        if (action === "create") {
+          const response = await context.client.privatePost(
+            "/api/v2/user/create-virtual-subaccount",
+            compactObject({
+              subAccountList: [requireString(args, "subAccountName")],
+              remark: readString(args, "remark"),
+            }),
+            privateRateLimit("manage_subaccounts", 5),
+          );
+          return normalize(response);
+        }
+
+        if (action === "modify") {
+          const response = await context.client.privatePost(
+            "/api/v2/user/modify-virtual-subaccount",
+            compactObject({
+              subAccountUid,
+              permList: readStringArray(args, "permList"),
+              status: readString(args, "status"),
+              remark: readString(args, "remark"),
+            }),
+            privateRateLimit("manage_subaccounts", 5),
+          );
+          return normalize(response);
+        }
+
+        // createApiKey / modifyApiKey
+        const apiKeyPermissions = readString(args, "apiKeyPermissions");
+        const apiKeyIp = readString(args, "apiKeyIp");
+        const permList = readStringArray(args, "permList") ?? (apiKeyPermissions ? [apiKeyPermissions] : undefined);
+        const ipList = apiKeyIp ? [apiKeyIp] : undefined;
+
         const endpoint =
-          action === "create"
-            ? "/api/v2/user/create-virtual-subaccount"
-            : action === "modify"
-              ? "/api/v2/user/modify-virtual-subaccount"
-              : action === "createApiKey"
-                ? "/api/v2/user/create-virtual-subaccount-apikey"
-                : "/api/v2/user/modify-virtual-subaccount-apikey";
+          action === "createApiKey"
+            ? "/api/v2/user/create-virtual-subaccount-apikey"
+            : "/api/v2/user/modify-virtual-subaccount-apikey";
         const response = await context.client.privatePost(
           endpoint,
-          common,
+          compactObject({
+            subAccountUid,
+            passphrase: readString(args, "apiKeyPassphrase"),
+            permList,
+            ipList,
+            label: readString(args, "label"),
+            subAccountApiKey: action === "modifyApiKey" ? readString(args, "subAccountApiKey") : undefined,
+          }),
           privateRateLimit("manage_subaccounts", 5),
         );
         return normalize(response);

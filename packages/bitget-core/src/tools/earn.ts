@@ -14,10 +14,10 @@ type EarnOperation = "products" | "holdings" | "subscribe" | "redeem";
 export type EarnCapabilityStatus = "unknown" | "supported" | "unsupported";
 
 const EARN_ENDPOINTS: Record<EarnOperation, string[]> = {
-  products: ["/api/v2/earn/product/list", "/api/v2/earn/saving/product/list"],
-  holdings: ["/api/v2/earn/holding/list", "/api/v2/earn/saving/holding/list"],
-  subscribe: ["/api/v2/earn/subscribe"],
-  redeem: ["/api/v2/earn/redeem"],
+  products: ["/api/v2/earn/savings/product"],
+  holdings: ["/api/v2/earn/savings/assets"],
+  subscribe: ["/api/v2/earn/savings/subscribe"],
+  redeem: ["/api/v2/earn/savings/redeem"],
 };
 
 const earnEndpointCache: Partial<Record<EarnOperation, string>> = {};
@@ -161,7 +161,7 @@ export function registerEarnTools(): ToolSpec[] {
         type: "object",
         properties: {
           coin: { type: "string" },
-          productType: { type: "string" },
+          filter: { type: "string" },
         },
       },
       handler: async (rawArgs, context) => {
@@ -172,7 +172,7 @@ export function registerEarnTools(): ToolSpec[] {
           "products",
           compactObject({
             coin: readString(args, "coin"),
-            productType: readString(args, "productType"),
+            filter: readString(args, "filter"),
           }),
           "earn_get_products",
         );
@@ -191,9 +191,10 @@ export function registerEarnTools(): ToolSpec[] {
           action: { type: "string", enum: ["subscribe", "redeem"] },
           productId: { type: "string" },
           amount: { type: "string" },
-          coin: { type: "string" },
+          periodType: { type: "string" },
+          orderId: { type: "string" },
         },
-        required: ["action", "productId", "amount", "coin"],
+        required: ["action", "productId", "amount", "periodType"],
       },
       handler: async (rawArgs, context) => {
         const args = asRecord(rawArgs);
@@ -204,11 +205,12 @@ export function registerEarnTools(): ToolSpec[] {
         const response = await callEarnPost(
           context,
           operation,
-          {
+          compactObject({
             productId: requireString(args, "productId"),
             amount: requireString(args, "amount"),
-            coin: requireString(args, "coin"),
-          },
+            periodType: requireString(args, "periodType"),
+            orderId: readString(args, "orderId"),
+          }),
           "earn_subscribe_redeem",
         );
         return normalize(response);
@@ -224,8 +226,9 @@ export function registerEarnTools(): ToolSpec[] {
         type: "object",
         properties: {
           coin: { type: "string" },
-          productId: { type: "string" },
+          periodType: { type: "string" },
         },
+        required: ["periodType"],
       },
       handler: async (rawArgs, context) => {
         const args = asRecord(rawArgs);
@@ -235,7 +238,7 @@ export function registerEarnTools(): ToolSpec[] {
           "holdings",
           compactObject({
             coin: readString(args, "coin"),
-            productId: readString(args, "productId"),
+            periodType: requireString(args, "periodType"),
           }),
           "earn_get_holdings",
         );

@@ -76,7 +76,7 @@ export function registerMarginTools(): ToolSpec[] {
           marginType: { type: "string", enum: [...MARGIN_TYPES] },
           coin: { type: "string" },
           amount: { type: "string" },
-          symbol: { type: "string" },
+          symbol: { type: "string", description: "Required for isolated margin." },
         },
         required: ["marginType", "coin", "amount"],
       },
@@ -89,7 +89,9 @@ export function registerMarginTools(): ToolSpec[] {
           compactObject({
             coin: requireString(args, "coin"),
             borrowAmount: requireString(args, "amount"),
-            symbol: readString(args, "symbol"),
+            symbol: marginType === "isolated"
+              ? requireString(args, "symbol")
+              : readString(args, "symbol"),
           }),
           privateRateLimit("margin_borrow", 10),
         );
@@ -100,34 +102,63 @@ export function registerMarginTools(): ToolSpec[] {
       name: "margin_repay",
       module: "margin",
       description:
-        "Repay margin debt with optional flash repay. [CAUTION] Uses account funds. Private endpoint. Rate limit: 10 req/s per UID.",
+        "Repay margin debt with optional flash repay. [CAUTION] Uses account funds. Private endpoint. Rate limit: 10 req/s per UID. For flash repay, coin is optional (omit to repay all). For isolated flash repay, symbol filters which pairs to repay.",
       isWrite: true,
       inputSchema: {
         type: "object",
         properties: {
           marginType: { type: "string", enum: [...MARGIN_TYPES] },
-          coin: { type: "string" },
-          amount: { type: "string" },
-          symbol: { type: "string" },
+          coin: { type: "string", description: "Required for regular repay. Optional for flash repay (omit to repay all)." },
+          amount: { type: "string", description: "Required for regular repay." },
+          symbol: { type: "string", description: "Required for isolated regular repay. Optional for isolated flash repay." },
           flashRepay: { type: "boolean" },
         },
-        required: ["marginType", "coin"],
+        required: ["marginType"],
       },
       handler: async (rawArgs, context) => {
         const args = asRecord(rawArgs);
         const marginType = requireString(args, "marginType");
         const flashRepay = readBoolean(args, "flashRepay") ?? false;
         assertEnum(marginType, "marginType", MARGIN_TYPES);
+
+        let body: Record<string, unknown>;
+
+        if (flashRepay) {
+          if (marginType === "isolated") {
+            // Flash isolated: optional symbolList
+            const symbol = readString(args, "symbol");
+            body = compactObject({
+              symbolList: symbol ? [symbol] : undefined,
+            });
+          } else {
+            // Flash crossed: coin is optional (omit = full account repay)
+            body = compactObject({
+              coin: readString(args, "coin"),
+            });
+          }
+        } else {
+          if (marginType === "isolated") {
+            // Regular isolated: repayAmount and symbol are required
+            body = compactObject({
+              coin: requireString(args, "coin"),
+              repayAmount: requireString(args, "amount"),
+              symbol: requireString(args, "symbol"),
+            });
+          } else {
+            // Regular crossed: repayAmount is required
+            body = compactObject({
+              coin: requireString(args, "coin"),
+              repayAmount: requireString(args, "amount"),
+            });
+          }
+        }
+
         const path = flashRepay
           ? marginPath(marginType, "account/flash-repay")
           : marginPath(marginType, "account/repay");
         const response = await context.client.privatePost(
           path,
-          compactObject({
-            coin: requireString(args, "coin"),
-            repayAmount: readString(args, "amount"),
-            symbol: readString(args, "symbol"),
-          }),
+          body,
           privateRateLimit("margin_repay", 10),
         );
         return normalize(response);
@@ -137,7 +168,7 @@ export function registerMarginTools(): ToolSpec[] {
       name: "margin_place_order",
       module: "margin",
       description:
-        "Place margin order in crossed or isolated mode. [CAUTION] Executes real trade. Private endpoint. Rate limit: 10 req/s per UID.",
+        "Place margin order in crossed or isolated mode. [CAUTION] Executes real trade. Private endpoint. Rate limit: 10 req/s per UID. For market buy orders, use quoteSize (quote currency amount) instead of size.",
       isWrite: true,
       inputSchema: {
         type: "object",
@@ -147,26 +178,31 @@ export function registerMarginTools(): ToolSpec[] {
           side: { type: "string", enum: ["buy", "sell"] },
           orderType: { type: "string", enum: ["limit", "market"] },
           price: { type: "string" },
-          size: { type: "string" },
+          size: { type: "string", description: "Base currency size. For market buy, use quoteSize instead." },
+          quoteSize: { type: "string", description: "Quote currency size. Required for market buy orders." },
           loanType: {
             type: "string",
             enum: ["normal", "autoLoan", "autoRepay", "autoLoanAndRepay"],
           },
         },
-        required: ["marginType", "symbol", "side", "orderType", "size"],
+        required: ["marginType", "symbol", "side", "orderType"],
       },
       handler: async (rawArgs, context) => {
         const args = asRecord(rawArgs);
         const marginType = requireString(args, "marginType");
         assertEnum(marginType, "marginType", MARGIN_TYPES);
+        const orderType = requireString(args, "orderType");
+        const side = requireString(args, "side");
+        const isMarketBuy = orderType === "market" && side === "buy";
         const response = await context.client.privatePost(
           marginPath(marginType, "place-order"),
           compactObject({
             symbol: requireString(args, "symbol"),
-            side: requireString(args, "side"),
-            orderType: requireString(args, "orderType"),
+            side,
+            orderType,
             price: readString(args, "price"),
-            baseSize: requireString(args, "size"),
+            baseSize: isMarketBuy ? undefined : requireString(args, "size"),
+            quoteSize: isMarketBuy ? requireString(args, "quoteSize") : readString(args, "quoteSize"),
             loanType: readString(args, "loanType") ?? "normal",
             force: "gtc",
           }),
@@ -226,16 +262,16 @@ export function registerMarginTools(): ToolSpec[] {
       name: "margin_get_orders",
       module: "margin",
       description:
-        "Query margin orders (open/history/order detail). Private endpoint. Rate limit: 10 req/s per UID.",
+        "Query margin orders (open/history/order detail). Private endpoint. Rate limit: 10 req/s per UID. Note: symbol and startTime are required by the API for open-orders queries.",
       isWrite: false,
       inputSchema: {
         type: "object",
         properties: {
           marginType: { type: "string", enum: [...MARGIN_TYPES] },
-          symbol: { type: "string" },
+          symbol: { type: "string", description: "Required for open-orders queries per API docs." },
           orderId: { type: "string" },
           status: { type: "string", enum: ["open", "history"] },
-          startTime: { type: "string" },
+          startTime: { type: "string", description: "Required for open-orders queries per API docs." },
           endTime: { type: "string" },
           limit: { type: "number" },
         },
@@ -298,21 +334,20 @@ export function registerMarginTools(): ToolSpec[] {
           "interest",
           "liquidation",
         ]);
-        const apiMarginType =
-          recordType === "borrow"
-            ? "borrow"
-            : recordType === "repay"
-              ? "repay"
-              : recordType === "interest"
-                ? "interest"
-                : "liquidation_fee";
+        const recordTypeSuffixMap: Record<string, string> = {
+          borrow: "borrow-history",
+          repay: "repay-history",
+          interest: "interest-history",
+          liquidation: "liquidation-history",
+        };
+        const suffix = recordTypeSuffixMap[recordType];
         const now = Date.now();
         const defaultStartTime = String(now - 30 * 24 * 60 * 60 * 1000);
         const response = await context.client.privateGet(
-          marginPath(marginType, "financial-records"),
+          marginPath(marginType, suffix),
           compactObject({
-            marginType: apiMarginType,
             coin: readString(args, "coin"),
+            symbol: readString(args, "symbol"),
             startTime: readString(args, "startTime") ?? defaultStartTime,
             endTime: readString(args, "endTime"),
             limit: readNumber(args, "limit"),

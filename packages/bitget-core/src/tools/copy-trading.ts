@@ -189,9 +189,9 @@ export function registerCopyTradingTools(): ToolSpec[] {
           traderId: {
             type: "string",
             description:
-              "Required trader id. For spot copy this is traderUserId. For futures copy this is traderId.",
+              "Required trader id.",
           },
-          symbol: { type: "string", description: "Optional symbol for spot copy settings." },
+          symbol: { type: "string", description: "Symbol for copy settings." },
           leverageType: {
             type: "string",
             enum: ["position", "contract"],
@@ -200,20 +200,24 @@ export function registerCopyTradingTools(): ToolSpec[] {
           traceType: {
             type: "string",
             enum: ["amount", "ratio"],
-            description: "Futures copy size mode. Default amount.",
+            description: "Copy size mode. Default amount.",
           },
           marginType: {
             type: "string",
-            enum: ["cross", "isolated"],
-            description: "Futures margin type. Default cross.",
+            enum: ["trader", "specify"],
+            description: "Futures margin type. Default trader.",
           },
           amount: {
             type: "string",
-            description: "Trace amount (for amount mode).",
+            description: "Trace amount/value (mapped to traceValue).",
           },
           ratio: {
             type: "string",
-            description: "Trace ratio (for ratio mode).",
+            description: "Trace ratio (mapped to traceValue when traceType=ratio).",
+          },
+          maxHoldSize: {
+            type: "string",
+            description: "Max hold size for spot copy settings.",
           },
           autoSelectTrader: {
             type: "boolean",
@@ -290,9 +294,16 @@ export function registerCopyTradingTools(): ToolSpec[] {
         }
 
         if (isSpot(productType)) {
+          const spotSymbol = readString(args, "symbol");
+          const spotSettings = compactObject({
+            symbol: spotSymbol,
+            traceType: readString(args, "traceType") ?? "amount",
+            maxHoldSize: readString(args, "maxHoldSize"),
+            traceValue: readString(args, "amount"),
+          });
           const payload = compactObject({
-            traderUserId: resolvedTraderId,
-            symbol: readString(args, "symbol"),
+            traderId: resolvedTraderId,
+            settings: spotSymbol ? [spotSettings] : undefined,
           });
           if (dryRun) {
             return {
@@ -335,18 +346,21 @@ export function registerCopyTradingTools(): ToolSpec[] {
           );
         }
 
+        const traceType = readString(args, "traceType") ?? "amount";
+        const traceValue =
+          traceType === "ratio"
+            ? (readString(args, "ratio") ?? readString(args, "amount") ?? "10")
+            : (readString(args, "amount") ?? readString(args, "ratio") ?? "10");
         const payload = {
           traderId: resolvedTraderId,
-          productType,
           settings: [
             compactObject({
-              traderId: resolvedTraderId,
               symbol,
-              leverType: readString(args, "leverageType") ?? "position",
-              traceType: readString(args, "traceType") ?? "amount",
-              marginType: readString(args, "marginType") ?? "cross",
-              amount: readString(args, "amount") ?? "10",
-              ratio: readString(args, "ratio"),
+              productType,
+              leverType: readString(args, "leverageType") ?? "fixed",
+              traceType,
+              marginType: readString(args, "marginType") ?? "trader",
+              traceValue,
             }),
           ],
         };

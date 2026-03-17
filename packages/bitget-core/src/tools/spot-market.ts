@@ -80,9 +80,17 @@ export function registerSpotMarketTools(): ToolSpec[] {
           type === "step0"
             ? "/api/v2/spot/market/orderbook"
             : "/api/v2/spot/market/merge-depth";
+        const precisionMap: Record<string, string> = {
+          step1: "scale0",
+          step2: "scale1",
+          step3: "scale2",
+          step4: "scale3",
+          step5: "scale3",
+        };
+        const precision = type !== "step0" ? precisionMap[type] : undefined;
         const response = await context.client.publicGet(
           path,
-          compactObject({ symbol, type, limit }),
+          compactObject({ symbol, precision, limit }),
           publicRateLimit("spot_get_depth", 20),
         );
         return normalize(response);
@@ -118,8 +126,8 @@ export function registerSpotMarketTools(): ToolSpec[] {
         const endTime = readString(args, "endTime");
         const limit = readNumber(args, "limit");
         const path = startTime
-          ? "/api/v2/spot/market/history-candles"
-          : "/api/v2/spot/market/candles";
+          ? "/api/v2/spot/market/candles"
+          : "/api/v2/spot/market/history-candles";
         const response = await context.client.publicGet(
           path,
           compactObject({ symbol, granularity, startTime, endTime, limit }),

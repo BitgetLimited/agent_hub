@@ -65,6 +65,9 @@ export function registerP2pTools(): ToolSpec[] {
           status: { type: "string" },
           startTime: { type: "string" },
           endTime: { type: "string" },
+          side: { type: "string", description: "Required for advertisements: buy or sell." },
+          coin: { type: "string", description: "Required for advertisements: coin to trade." },
+          fiat: { type: "string", description: "Required for advertisements: fiat currency." },
         },
       },
       handler: async (rawArgs, context) => {
@@ -81,6 +84,9 @@ export function registerP2pTools(): ToolSpec[] {
             status: readString(args, "status"),
             startTime: readString(args, "startTime"),
             endTime: readString(args, "endTime"),
+            side: readString(args, "side"),
+            coin: readString(args, "coin"),
+            fiat: readString(args, "fiat"),
           }),
           privateRateLimit("p2p_get_orders", 10),
         );

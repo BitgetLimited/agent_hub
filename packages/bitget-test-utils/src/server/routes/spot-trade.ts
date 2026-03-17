@@ -63,8 +63,8 @@ export function registerSpotTradeRoutes(router: Router): void {
 
   // POST /api/v2/spot/trade/batch-cancel-order
   router.register("POST", "/api/v2/spot/trade/batch-cancel-order", (_req, body, _query, state) => {
-    const orderIds = (body["orderIds"] as string[]) ?? [];
-    const successList = orderIds.map((orderId) => {
+    const orderList = (body["orderList"] as { orderId: string }[]) ?? [];
+    const successList = orderList.map(({ orderId }) => {
       const order = state.spotOrders.get(orderId);
       if (order) { order.status = "cancelled"; order.uTime = Date.now().toString(); }
       return { orderId };
@@ -180,10 +180,10 @@ export function registerSpotTradeRoutes(router: Router): void {
 
   // POST /api/v2/spot/trade/batch-cancel-plan-order
   router.register("POST", "/api/v2/spot/trade/batch-cancel-plan-order", (_req, body, _query, state) => {
-    const symbol = body["symbol"] as string;
+    const symbolList = (body["symbolList"] as string[]) ?? [];
     for (const order of state.spotPlanOrders.values()) {
-      if (!symbol || order.symbol === symbol) order.status = "cancelled";
+      if (symbolList.length === 0 || symbolList.includes(order.symbol)) order.status = "cancelled";
     }
-    return { symbol };
+    return { symbolList };
   });
 }
