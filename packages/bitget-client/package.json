@@ -1,6 +1,6 @@
 {
   "name": "bitget-client",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "Bitget CLI tool — bgc",
   "type": "module",
   "license": "MIT",
@@ -8,8 +8,13 @@
   "bin": {
     "bgc": "dist/index.js"
   },
-  "files": ["dist", "README.md"],
-  "publishConfig": { "access": "public" },
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
   "scripts": {
     "build": "tsup",
     "typecheck": "tsc --noEmit",
@@ -17,8 +22,15 @@
     "test:watch": "vitest",
     "prepublishOnly": "npm run typecheck && npm run build"
   },
-  "engines": { "node": ">=18" },
-  "keywords": ["bitget", "cli", "bgc", "trading"],
+  "engines": {
+    "node": ">=18"
+  },
+  "keywords": [
+    "bitget",
+    "cli",
+    "bgc",
+    "trading"
+  ],
   "dependencies": {
     "bitget-core": "workspace:*"
   },
