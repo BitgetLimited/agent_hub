@@ -32,4 +32,6 @@ npm-debug.log*
 .omc/
 
 bitget-skill-workspace
-docs/
+docs/API文档/
+docs/superpowers/
+docs/plans/
