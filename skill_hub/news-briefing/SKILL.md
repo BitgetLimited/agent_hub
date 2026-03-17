@@ -11,7 +11,7 @@ description: >
   media, KOL views, analyst opinion, researcher take, any news on [X].
 ---
 
-<!-- MCP Server: https://datahub.noxiaohao.com/sse -->
+<!-- MCP Server: https://datahub.noxiaohao.com/mcp -->
 # News Briefing Skill
 
 Aggregate, filter, and synthesize news and social signals into clear, market-relevant

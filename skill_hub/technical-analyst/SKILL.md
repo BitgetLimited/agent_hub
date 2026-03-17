@@ -10,7 +10,7 @@ description: >
   price action, or "should I buy/sell X".
 ---
 
-<!-- MCP Server: https://datahub.noxiaohao.com/sse -->
+<!-- MCP Server: https://datahub.noxiaohao.com/mcp -->
 
 # Technical Analysis Skill
 

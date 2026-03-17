@@ -11,7 +11,7 @@ description: >
   euro, yen, China market, A-shares, economic calendar, macro environment.
 ---
 
-<!-- MCP Server: https://datahub.noxiaohao.com/sse -->
+<!-- MCP Server: https://datahub.noxiaohao.com/mcp -->
 # Macro Analyst Skill
 
 Your job is to read the macroeconomic landscape and translate it into a clear

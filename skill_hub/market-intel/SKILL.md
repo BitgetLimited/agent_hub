@@ -11,7 +11,7 @@ description: >
   and institutions are doing with their coins.
 ---
 
-<!-- MCP Server: https://datahub.noxiaohao.com/sse -->
+<!-- MCP Server: https://datahub.noxiaohao.com/mcp -->
 # Market Intelligence Skill
 
 Surface structural market data that price charts alone don't show: where capital is

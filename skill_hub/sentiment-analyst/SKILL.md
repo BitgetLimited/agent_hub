@@ -10,7 +10,7 @@ description: >
   exchange outflow, exchange inflow, coins leaving exchanges, accumulation signal.
 ---
 
-<!-- MCP Server: https://datahub.noxiaohao.com/sse -->
+<!-- MCP Server: https://datahub.noxiaohao.com/mcp -->
 # Sentiment Analyst Skill
 
 Your job is to synthesize signals from multiple sentiment layers — market mood indices,
