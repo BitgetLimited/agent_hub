@@ -2,7 +2,7 @@
 
 **Skill Hub** is a curated collection of plug-and-play AI skills bundled with Bitget Agent Hub. Each skill is a structured prompt that instructs Claude Code (or any compatible AI) how to use the market-data MCP server to answer a specific category of questions — turning raw API calls into coherent, analyst-grade outputs.
 
-Skills live in `skill_hub/`, one subdirectory per skill, with a standard `SKILL.md` entry point.
+Skills live in `packages/bitget-skill-hub/skills/`, one subdirectory per skill, with a standard `SKILL.md` entry point.
 
 ---
 
@@ -15,14 +15,14 @@ A skill is a `SKILL.md` file with a YAML front matter `description` (used for tr
 - **How to present it** — output templates with consistent formatting
 - **Error handling** — neutral language when data is unavailable
 
-Skills are self-contained. Drop a `skill_hub/<name>/SKILL.md` into Claude Code's skill path and it activates automatically.
+Skills are self-contained. Install with `npm install -g bitget-skill-hub` and they activate automatically in Claude Code.
 
 ---
 
 ## Bundled Skills
 
 ### `macro-analyst`
-**Path:** `skill_hub/macro-analyst/SKILL.md`
+**Path:** `packages/bitget-skill-hub/skills/macro-analyst/SKILL.md`
 
 Macro-economic and cross-asset analysis for crypto market context.
 
@@ -39,7 +39,7 @@ Macro-economic and cross-asset analysis for crypto market context.
 ---
 
 ### `market-intel`
-**Path:** `skill_hub/market-intel/SKILL.md`
+**Path:** `packages/bitget-skill-hub/skills/market-intel/SKILL.md`
 
 On-chain and institutional market intelligence — the structural layer beneath price.
 
@@ -56,7 +56,7 @@ On-chain and institutional market intelligence — the structural layer beneath 
 ---
 
 ### `news-briefing`
-**Path:** `skill_hub/news-briefing/SKILL.md`
+**Path:** `packages/bitget-skill-hub/skills/news-briefing/SKILL.md`
 
 Crypto and financial news aggregation, briefing, and narrative synthesis.
 
@@ -73,7 +73,7 @@ Crypto and financial news aggregation, briefing, and narrative synthesis.
 ---
 
 ### `sentiment-analyst`
-**Path:** `skill_hub/sentiment-analyst/SKILL.md`
+**Path:** `packages/bitget-skill-hub/skills/sentiment-analyst/SKILL.md`
 
 Crypto market sentiment and trader positioning analysis.
 
@@ -91,7 +91,7 @@ Crypto market sentiment and trader positioning analysis.
 ---
 
 ### `technical-analyst`
-**Path:** `skill_hub/technical-analyst/SKILL.md`
+**Path:** `packages/bitget-skill-hub/skills/technical-analyst/SKILL.md`
 
 Technical analysis and strategy backtesting for crypto assets.
 
@@ -123,7 +123,7 @@ The five skills are designed to complement each other for a complete market pict
 ## Directory Structure
 
 ```
-skill_hub/
+packages/bitget-skill-hub/skills/
 ├── macro-analyst/
 │   └── SKILL.md          # Macro & cross-asset analysis
 ├── market-intel/
@@ -140,6 +140,6 @@ skill_hub/
 
 ## Required MCP Server
 
-All skills depend on the **market-data MCP server** (`https://datahub.noxiaohao.com/sse`) for live data. Configure it in your Claude Code MCP settings before using these skills.
+All skills depend on the **market-data MCP server** (`https://datahub.noxiaohao.com/mcp`) for live data. Configure it in your Claude Code MCP settings before using these skills.
 
 The server provides: `technical_analysis`, `backtest`, `crypto_market`, `defi_analytics`, `dex_market`, `sentiment_index`, `derivatives_sentiment`, `news_feed`, `social_trending`, `tradfi_news`, `network_status`, `rates_yields`, `macro_indicators`, `cross_asset`, `global_assets`, `global_data`, `cn_market`.

@@ -95,6 +95,8 @@ importers:
         specifier: workspace:*
         version: link:../bitget-core
 
+  packages/bitget-skill-hub: {}
+
   packages/bitget-test-utils:
     dependencies:
       bitget-core:

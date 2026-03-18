@@ -46,13 +46,28 @@ A built-in collection of market-analysis skills for Claude Code. Each skill inst
 
 | Skill | What it does |
 |-------|-------------|
-| [`macro-analyst`](skill_hub/macro-analyst/SKILL.md) | Macro & cross-asset analysis — Fed policy, yield curve, CPI, BTC vs DXY/Nasdaq/Gold correlation, RISK-ON/OFF verdict |
-| [`market-intel`](skill_hub/market-intel/SKILL.md) | On-chain & institutional intelligence — ETF flows, whale activity, exchange flows, market cycle indicators (AHR999, Pi Cycle, Rainbow Chart), DeFi TVL |
-| [`news-briefing`](skill_hub/news-briefing/SKILL.md) | News aggregation & narrative synthesis — morning briefings, keyword search, Chinese social media pulse, KOL views |
-| [`sentiment-analyst`](skill_hub/sentiment-analyst/SKILL.md) | Sentiment & positioning analysis — Fear & Greed index, long/short ratios, funding rates, open interest, taker ratio |
-| [`technical-analyst`](skill_hub/technical-analyst/SKILL.md) | Technical analysis & backtesting — RSI, MACD, Bollinger Bands, support/resistance, strategy backtests vs buy-and-hold |
+| [`macro-analyst`](packages/bitget-skill-hub/skills/macro-analyst/SKILL.md) | Macro & cross-asset analysis — Fed policy, yield curve, CPI, BTC vs DXY/Nasdaq/Gold correlation, RISK-ON/OFF verdict |
+| [`market-intel`](packages/bitget-skill-hub/skills/market-intel/SKILL.md) | On-chain & institutional intelligence — ETF flows, whale activity, exchange flows, market cycle indicators (AHR999, Pi Cycle, Rainbow Chart), DeFi TVL |
+| [`news-briefing`](packages/bitget-skill-hub/skills/news-briefing/SKILL.md) | News aggregation & narrative synthesis — morning briefings, keyword search, Chinese social media pulse, KOL views |
+| [`sentiment-analyst`](packages/bitget-skill-hub/skills/sentiment-analyst/SKILL.md) | Sentiment & positioning analysis — Fear & Greed index, long/short ratios, funding rates, open interest, taker ratio |
+| [`technical-analyst`](packages/bitget-skill-hub/skills/technical-analyst/SKILL.md) | Technical analysis & backtesting — RSI, MACD, Bollinger Bands, support/resistance, strategy backtests vs buy-and-hold |
 
 → See [docs/skill-hub.md](docs/skill-hub.md) for full documentation.
+
+### Install Skills + MCP (one command)
+
+```bash
+npm install -g bitget-skill-hub
+```
+
+This installs all 5 Skill Hub skills and configures the market-data MCP server automatically for Claude Code. For Codex or OpenClaw:
+
+```bash
+npx bitget-skill-hub --target codex
+npx bitget-skill-hub --target openclaw
+# or all at once:
+npx bitget-skill-hub --target all
+```
 
 ### Required: Market Data MCP Server
 
