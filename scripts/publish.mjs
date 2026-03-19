@@ -18,6 +18,8 @@
  *   2. bitget-client        (depends on bitget-core)
  *   2. bitget-mcp-server    (depends on bitget-core)
  *   3. bitget-skill         (devDep on bitget-core — no runtime deps)
+ *   4. bitget-skill-hub     (no workspace deps, must exist on npm before bitget-hub references it)
+ *   5. bitget-hub           (no workspace deps, meta installer)
  *
  * Prerequisites:
  *   - pnpm installed
@@ -42,6 +44,9 @@ const PUBLISH_ORDER = [
   "bitget-mcp",
   // Tier 3: skill packages (no runtime workspace deps)
   "bitget-skill",
+  "bitget-skill-hub",
+  // Tier 4: meta / installer packages
+  "bitget-hub",
 ];
 
 function parseArgs() {
