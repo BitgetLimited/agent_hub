@@ -3,9 +3,18 @@
 import { createRequire } from "node:module";
 import { spawn as nodeSpawn } from "node:child_process";
 import { createInterface } from "node:readline";
+import { join } from "node:path";
 
 // ── Constants ──────────────────────────────────────────────────────────
 const TARGET_PACKAGES = ["bitget-skill", "bitget-skill-hub", "bitget-client"];
+
+const SKILL_PACKAGES = ["bitget-skill", "bitget-skill-hub"];
+
+const DEPLOY_TARGETS = {
+  claude:   { label: "Claude Code", dir: "~/.claude/skills" },
+  codex:    { label: "Codex",       dir: "~/.codex/skills" },
+  openclaw: { label: "OpenClaw",    dir: "~/.openclaw/skills" },
+};
 
 const { version: CLI_VERSION } = createRequire(import.meta.url)(
   "./package.json"
@@ -16,11 +25,13 @@ bitget-hub v${CLI_VERSION}
 
 Usage:
   npx bitget-hub                                  Interactive menu
-  npx bitget-hub upgrade-all                      Upgrade all packages to latest
-  npx bitget-hub upgrade <pkg>                    Upgrade one package to latest
+  npx bitget-hub upgrade-all [--target <tools>]   Upgrade all packages to latest
+  npx bitget-hub upgrade <pkg> [--target <tools>] Upgrade one package to latest
   npx bitget-hub rollback <pkg> --to <version>    Rollback to specific version
+  npx bitget-hub install [pkg] [--target <tools>] Deploy skills to AI tools
 
 Flags:
+  --target <t>  AI tool targets: claude, codex, openclaw, all (default: claude)
   --dry-run     Preview commands without executing
   --version     Print version and exit
   --help, -h    Print this help and exit
@@ -38,12 +49,16 @@ function parseArgs(argv) {
     to: args.includes("--to")
       ? args[args.indexOf("--to") + 1] || null
       : null,
+    target: args.includes("--target")
+      ? args[args.indexOf("--target") + 1] || null
+      : null,
   };
   const positional = args.filter(
     (a) =>
       !a.startsWith("--") &&
       !a.startsWith("-h") &&
-      a !== flags.to
+      a !== flags.to &&
+      a !== flags.target
   );
   return { command: positional[0] || null, pkg: positional[1] || null, ...flags };
 }
@@ -126,6 +141,37 @@ async function getVersionHistory(pm, pkg) {
   return Array.isArray(versions) ? versions.reverse() : [versions];
 }
 
+async function getGlobalRoot(pm) {
+  const { code, stdout } = await execCapture(pm, ["root", "-g"]);
+  if (code !== 0 || !stdout) return null;
+  return stdout;
+}
+
+async function deploySkills(pm, pkgNames, targets, dryRun) {
+  const globalRoot = await getGlobalRoot(pm);
+  if (!globalRoot) {
+    console.error("✗ Could not determine global package root");
+    return false;
+  }
+
+  let allOk = true;
+  for (const pkg of pkgNames) {
+    if (!SKILL_PACKAGES.includes(pkg)) continue;
+
+    const scriptPath = join(globalRoot, pkg, "scripts", "install.js");
+    const targetStr = targets.join(",");
+
+    console.log(`\n📦 Deploying ${pkg} skills → ${targets.map((t) => DEPLOY_TARGETS[t].label).join(", ")}`);
+
+    const code = await exec("node", [scriptPath, "--target", targetStr], { dryRun });
+    if (code !== 0 && !dryRun) {
+      console.error(`  ✗ Skill deployment failed for ${pkg}`);
+      allOk = false;
+    }
+  }
+  return allOk;
+}
+
 // ── Helpers ────────────────────────────────────────────────────────────
 
 function validatePkg(pkg) {
@@ -141,6 +187,21 @@ function validatePkg(pkg) {
     return false;
   }
   return true;
+}
+
+function parseTargets(targetStr) {
+  if (!targetStr) return null;
+  if (targetStr === "all") return Object.keys(DEPLOY_TARGETS);
+  const keys = targetStr.split(",").map((s) => s.trim());
+  const invalid = keys.filter((k) => !(k in DEPLOY_TARGETS));
+  if (invalid.length > 0) {
+    console.error(
+      `Unknown target(s): ${invalid.join(", ")}. Valid: ${Object.keys(DEPLOY_TARGETS).join(", ")}, all`
+    );
+    process.exitCode = 1;
+    return null;
+  }
+  return keys;
 }
 
 function ask(question) {
@@ -159,7 +220,7 @@ function isInteractive() {
 
 // ── Commands ───────────────────────────────────────────────────────────
 
-async function cmdUpgradeAll(pm, dryRun) {
+async function cmdUpgradeAll(pm, dryRun, targets) {
   console.log("\n🔄 Upgrading all packages to latest...\n");
   const installed = await getInstalledVersions(pm);
   let allOk = true;
@@ -204,9 +265,16 @@ async function cmdUpgradeAll(pm, dryRun) {
 
   console.log(allOk ? "\n✓ All packages up to date." : "\n⚠ Some packages failed.");
   if (!allOk) process.exitCode = 1;
+
+  if (targets && allOk) {
+    const skillsUpgraded = TARGET_PACKAGES.filter((p) => SKILL_PACKAGES.includes(p));
+    if (skillsUpgraded.length > 0) {
+      await deploySkills(pm, skillsUpgraded, targets, dryRun);
+    }
+  }
 }
 
-async function cmdUpgrade(pm, pkg, dryRun) {
+async function cmdUpgrade(pm, pkg, dryRun, targets) {
   if (!validatePkg(pkg)) return;
 
   const installed = await getInstalledVersions(pm);
@@ -254,10 +322,13 @@ async function cmdUpgrade(pm, pkg, dryRun) {
     process.exitCode = 1;
   } else {
     console.log(`✓ ${pkg}@${latest}`);
+    if (targets && SKILL_PACKAGES.includes(pkg)) {
+      await deploySkills(pm, [pkg], targets, dryRun);
+    }
   }
 }
 
-async function cmdRollback(pm, pkg, toVersion, dryRun) {
+async function cmdRollback(pm, pkg, toVersion, dryRun, targets) {
   if (!validatePkg(pkg)) return;
 
   if (!toVersion && !isInteractive()) {
@@ -335,7 +406,99 @@ async function cmdRollback(pm, pkg, toVersion, dryRun) {
     process.exitCode = 1;
   } else {
     console.log(`✓ ${pkg}@${targetVersion}`);
+    if (targets && SKILL_PACKAGES.includes(pkg)) {
+      await deploySkills(pm, [pkg], targets, dryRun);
+    }
   }
+}
+
+async function cmdInstall(pm, pkg, targetStr, dryRun) {
+  const targets = parseTargets(targetStr || "claude");
+  if (!targets) return;
+
+  let pkgNames;
+  if (pkg) {
+    if (!SKILL_PACKAGES.includes(pkg)) {
+      console.error(
+        `${pkg} does not contain installable skills. Supported: ${SKILL_PACKAGES.join(", ")}`
+      );
+      process.exitCode = 1;
+      return;
+    }
+    pkgNames = [pkg];
+  } else {
+    pkgNames = [...SKILL_PACKAGES];
+  }
+
+  const installed = await getInstalledVersions(pm);
+  const missing = pkgNames.filter((p) => !installed.get(p));
+  if (missing.length > 0) {
+    for (const p of missing) {
+      console.error(
+        `${p} is not globally installed. Run \`npx bitget-hub upgrade ${p}\` first.`
+      );
+    }
+    process.exitCode = 1;
+    return;
+  }
+
+  const ok = await deploySkills(pm, pkgNames, targets, dryRun);
+  if (!ok) process.exitCode = 1;
+}
+
+async function interactiveInstall(pm, dryRun) {
+  console.log("\nSelect installation target:");
+  const targetKeys = Object.keys(DEPLOY_TARGETS);
+  targetKeys.forEach((k, i) => {
+    console.log(`  ${i + 1}. ${DEPLOY_TARGETS[k].label}  (${DEPLOY_TARGETS[k].dir})`);
+  });
+  console.log(`  ${targetKeys.length + 1}. All`);
+
+  const targetChoice = await ask("Enter number (comma-separated for multiple): ");
+  let targets;
+  const nums = targetChoice.split(",").map((s) => parseInt(s.trim(), 10));
+  if (nums.includes(targetKeys.length + 1)) {
+    targets = targetKeys;
+  } else {
+    targets = nums
+      .map((n) => targetKeys[n - 1])
+      .filter(Boolean);
+  }
+  if (targets.length === 0) {
+    console.log("Cancelled.");
+    return;
+  }
+
+  console.log("\nSelect skill package:");
+  console.log("  1. bitget-skill      (trading skill)");
+  console.log("  2. bitget-skill-hub  (market analysis skills x5)");
+  console.log("  3. All");
+
+  const pkgChoice = await ask("Enter number: ");
+  let pkgNames;
+  switch (pkgChoice) {
+    case "1": pkgNames = ["bitget-skill"]; break;
+    case "2": pkgNames = ["bitget-skill-hub"]; break;
+    case "3": pkgNames = [...SKILL_PACKAGES]; break;
+    default:
+      console.log("Cancelled.");
+      return;
+  }
+
+  const installed = await getInstalledVersions(pm);
+  const missing = pkgNames.filter((p) => !installed.get(p));
+  if (missing.length > 0) {
+    for (const p of missing) {
+      console.error(
+        `${p} is not globally installed. Run \`npx bitget-hub upgrade ${p}\` first.`
+      );
+    }
+    process.exitCode = 1;
+    return;
+  }
+
+  const ok = await deploySkills(pm, pkgNames, targets, dryRun);
+  if (!ok) process.exitCode = 1;
 }
 
 async function interactiveMenu(pm, dryRun) {
@@ -346,13 +509,15 @@ async function interactiveMenu(pm, dryRun) {
   console.log("  1. Upgrade all packages to latest");
   console.log("  2. Upgrade a specific package");
   console.log("  3. Rollback a specific package");
+  console.log("  4. Install skills to AI tools");
   console.log("  0. Exit");
 
   const choice = await ask("\nEnter number: ");
 
   switch (choice) {
     case "1":
-      return cmdUpgradeAll(pm, dryRun);
+      await cmdUpgradeAll(pm, dryRun, ["claude"]);
+      return;
 
     case "2": {
       console.log("\nSelect package to upgrade:");
@@ -366,7 +531,7 @@ async function interactiveMenu(pm, dryRun) {
         console.log("Cancelled.");
         return;
       }
-      return cmdUpgrade(pm, TARGET_PACKAGES[idx], dryRun);
+      return cmdUpgrade(pm, TARGET_PACKAGES[idx], dryRun, null);
     }
 
     case "3": {
@@ -381,8 +546,11 @@ async function interactiveMenu(pm, dryRun) {
         console.log("Cancelled.");
         return;
       }
-      return cmdRollback(pm, TARGET_PACKAGES[idx], null, dryRun);
+      return cmdRollback(pm, TARGET_PACKAGES[idx], null, dryRun, null);
     }
+
+    case "4":
+      return interactiveInstall(pm, dryRun);
 
     case "0":
       return;
@@ -408,16 +576,23 @@ async function main() {
 
   const pm = detectPM();
 
+  const targets = opts.target ? parseTargets(opts.target) : null;
+  if (opts.target && !targets) return;
+
   if (opts.command === "upgrade-all") {
-    return cmdUpgradeAll(pm, opts.dryRun);
+    return cmdUpgradeAll(pm, opts.dryRun, targets);
   }
 
   if (opts.command === "upgrade") {
-    return cmdUpgrade(pm, opts.pkg, opts.dryRun);
+    return cmdUpgrade(pm, opts.pkg, opts.dryRun, targets);
   }
 
   if (opts.command === "rollback") {
-    return cmdRollback(pm, opts.pkg, opts.to, opts.dryRun);
+    return cmdRollback(pm, opts.pkg, opts.to, opts.dryRun, targets);
+  }
+
+  if (opts.command === "install") {
+    return cmdInstall(pm, opts.pkg, opts.target, opts.dryRun);
   }
 
   if (!opts.command) {
