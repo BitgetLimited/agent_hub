@@ -157,6 +157,241 @@ function isInteractive() {
   return process.stdin.isTTY === true;
 }
 
+// ── Commands ───────────────────────────────────────────────────────────
+
+async function cmdUpgradeAll(pm, dryRun) {
+  console.log("\n🔄 Upgrading all packages to latest...\n");
+  const installed = await getInstalledVersions(pm);
+  let allOk = true;
+
+  for (const pkg of TARGET_PACKAGES) {
+    const current = installed.get(pkg);
+    const latest = await getLatestVersion(pm, pkg);
+    if (!latest) {
+      console.error(`✗ Failed to fetch latest version for ${pkg}`);
+      allOk = false;
+      continue;
+    }
+
+    console.log(`\n── ${pkg} ──`);
+    if (current === latest) {
+      console.log(`  Already at latest (${latest}) — skipping`);
+      continue;
+    }
+
+    if (current) {
+      console.log(`  ${current} → ${latest}`);
+      const code = await exec(pm, ["uninstall", "-g", pkg], { dryRun });
+      if (code !== 0 && !dryRun) {
+        console.error(`  ✗ Uninstall failed`);
+        allOk = false;
+        continue;
+      }
+    } else {
+      console.log(`  Not installed — installing ${latest}`);
+    }
+
+    const code = await exec(pm, ["install", "-g", `${pkg}@${latest}`], {
+      dryRun,
+    });
+    if (code !== 0 && !dryRun) {
+      console.error(`  ✗ Install failed`);
+      allOk = false;
+    } else {
+      console.log(`  ✓ ${pkg}@${latest}`);
+    }
+  }
+
+  console.log(allOk ? "\n✓ All packages up to date." : "\n⚠ Some packages failed.");
+  if (!allOk) process.exitCode = 1;
+}
+
+async function cmdUpgrade(pm, pkg, dryRun) {
+  if (!validatePkg(pkg)) return;
+
+  const installed = await getInstalledVersions(pm);
+  const current = installed.get(pkg);
+  const latest = await getLatestVersion(pm, pkg);
+
+  if (!latest) {
+    console.error(`✗ Failed to fetch latest version for ${pkg}`);
+    process.exitCode = 1;
+    return;
+  }
+
+  console.log(`\n── ${pkg} ──`);
+
+  if (current === latest) {
+    console.log(`Already at latest (${latest}) — skipping`);
+    return;
+  }
+
+  if (current) {
+    console.log(`${current} → ${latest}`);
+    const code = await exec(pm, ["uninstall", "-g", pkg], { dryRun });
+    if (code !== 0 && !dryRun) {
+      console.error("✗ Uninstall failed");
+      process.exitCode = 1;
+      return;
+    }
+  } else if (isInteractive()) {
+    const answer = await ask(
+      `未检测到全局安装 ${pkg}，是否直接安装最新版？(y/n) `
+    );
+    if (answer.toLowerCase() !== "y") {
+      console.log("Cancelled.");
+      return;
+    }
+  } else {
+    console.log(`Not installed — installing ${latest}`);
+  }
+
+  const code = await exec(pm, ["install", "-g", `${pkg}@${latest}`], {
+    dryRun,
+  });
+  if (code !== 0 && !dryRun) {
+    console.error("✗ Install failed");
+    process.exitCode = 1;
+  } else {
+    console.log(`✓ ${pkg}@${latest}`);
+  }
+}
+
+async function cmdRollback(pm, pkg, toVersion, dryRun) {
+  if (!validatePkg(pkg)) return;
+
+  if (!toVersion && !isInteractive()) {
+    console.error("rollback requires --to <version>");
+    process.exitCode = 1;
+    return;
+  }
+
+  const versions = await getVersionHistory(pm, pkg);
+  if (versions.length === 0) {
+    console.error(`✗ Failed to fetch version history for ${pkg}`);
+    process.exitCode = 1;
+    return;
+  }
+
+  let targetVersion = toVersion;
+
+  if (!targetVersion) {
+    const installed = await getInstalledVersions(pm);
+    const current = installed.get(pkg);
+    console.log(
+      `\n${pkg} — ${current ? `当前版本: ${current}` : "(未安装)"}`
+    );
+    console.log("可用版本:");
+    const display = versions.slice(0, 20);
+    display.forEach((v, i) => {
+      const mark = v === current ? " (当前)" : "";
+      console.log(`  ${i + 1}. ${v}${mark}`);
+    });
+    if (versions.length > 20) {
+      console.log(`  ... 共 ${versions.length} 个版本`);
+    }
+
+    const answer = await ask("选择版本编号 (0 退出): ");
+    const idx = parseInt(answer, 10);
+    if (idx === 0 || isNaN(idx) || idx < 1 || idx > display.length) {
+      console.log("Cancelled.");
+      return;
+    }
+    targetVersion = display[idx - 1];
+  }
+
+  if (!versions.includes(targetVersion)) {
+    console.error(
+      `✗ Version ${targetVersion} not found for ${pkg}. Use '${pm} view ${pkg} versions --json' to see available versions.`
+    );
+    process.exitCode = 1;
+    return;
+  }
+
+  const installed = await getInstalledVersions(pm);
+  const current = installed.get(pkg);
+
+  if (current === targetVersion) {
+    console.log(`Already at ${targetVersion} — skipping`);
+    return;
+  }
+
+  console.log(`\n── ${pkg} → ${targetVersion} ──`);
+
+  if (current) {
+    const code = await exec(pm, ["uninstall", "-g", pkg], { dryRun });
+    if (code !== 0 && !dryRun) {
+      console.error("✗ Uninstall failed");
+      process.exitCode = 1;
+      return;
+    }
+  }
+
+  const code = await exec(pm, ["install", "-g", `${pkg}@${targetVersion}`], {
+    dryRun,
+  });
+  if (code !== 0 && !dryRun) {
+    console.error("✗ Install failed");
+    process.exitCode = 1;
+  } else {
+    console.log(`✓ ${pkg}@${targetVersion}`);
+  }
+}
+
+async function interactiveMenu(pm, dryRun) {
+  const installed = await getInstalledVersions(pm);
+
+  console.log(`\nbitget-hub v${CLI_VERSION}\n`);
+  console.log("? 请选择操作:");
+  console.log("  1. 升级全部包到最新版本");
+  console.log("  2. 升级指定包");
+  console.log("  3. 回滚指定包到历史版本");
+  console.log("  0. 退出");
+
+  const choice = await ask("\n请输入编号: ");
+
+  switch (choice) {
+    case "1":
+      return cmdUpgradeAll(pm, dryRun);
+
+    case "2": {
+      console.log("\n选择要升级的包:");
+      TARGET_PACKAGES.forEach((p, i) => {
+        const ver = installed.get(p);
+        console.log(`  ${i + 1}. ${p} ${ver ? `(${ver})` : "(未安装)"}`);
+      });
+      const pkgChoice = await ask("请输入编号: ");
+      const idx = parseInt(pkgChoice, 10) - 1;
+      if (idx < 0 || idx >= TARGET_PACKAGES.length) {
+        console.log("Cancelled.");
+        return;
+      }
+      return cmdUpgrade(pm, TARGET_PACKAGES[idx], dryRun);
+    }
+
+    case "3": {
+      console.log("\n选择要回滚的包:");
+      TARGET_PACKAGES.forEach((p, i) => {
+        const ver = installed.get(p);
+        console.log(`  ${i + 1}. ${p} ${ver ? `(${ver})` : "(未安装)"}`);
+      });
+      const pkgChoice = await ask("请输入编号: ");
+      const idx = parseInt(pkgChoice, 10) - 1;
+      if (idx < 0 || idx >= TARGET_PACKAGES.length) {
+        console.log("Cancelled.");
+        return;
+      }
+      return cmdRollback(pm, TARGET_PACKAGES[idx], null, dryRun);
+    }
+
+    case "0":
+      return;
+
+    default:
+      console.log("Invalid choice.");
+  }
+}
+
 // ── Main ───────────────────────────────────────────────────────────────
 
 async function main() {
@@ -173,11 +408,24 @@ async function main() {
 
   const pm = detectPM();
 
-  // TODO: dispatch to commands (upgrade-all, upgrade, rollback, interactive menu)
+  if (opts.command === "upgrade-all") {
+    return cmdUpgradeAll(pm, opts.dryRun);
+  }
+
+  if (opts.command === "upgrade") {
+    return cmdUpgrade(pm, opts.pkg, opts.dryRun);
+  }
+
+  if (opts.command === "rollback") {
+    return cmdRollback(pm, opts.pkg, opts.to, opts.dryRun);
+  }
 
   if (!opts.command) {
-    console.log(HELP);
-    return;
+    if (!isInteractive()) {
+      console.log(HELP);
+      return;
+    }
+    return interactiveMenu(pm, opts.dryRun);
   }
 
   console.error(`Unknown command: ${opts.command}`);
