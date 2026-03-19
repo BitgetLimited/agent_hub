@@ -136,7 +136,7 @@ function validatePkg(pkg) {
     return false;
   }
   if (!TARGET_PACKAGES.includes(pkg)) {
-    console.error(`未知包名，支持的包：${TARGET_PACKAGES.join(", ")}`);
+    console.error(`Unknown package. Supported: ${TARGET_PACKAGES.join(", ")}`);
     process.exitCode = 1;
     return false;
   }
@@ -236,7 +236,7 @@ async function cmdUpgrade(pm, pkg, dryRun) {
     }
   } else if (isInteractive()) {
     const answer = await ask(
-      `未检测到全局安装 ${pkg}，是否直接安装最新版？(y/n) `
+      `${pkg} is not installed globally. Install latest? (y/n) `
     );
     if (answer.toLowerCase() !== "y") {
       console.log("Cancelled.");
@@ -279,19 +279,19 @@ async function cmdRollback(pm, pkg, toVersion, dryRun) {
     const installed = await getInstalledVersions(pm);
     const current = installed.get(pkg);
     console.log(
-      `\n${pkg} — ${current ? `当前版本: ${current}` : "(未安装)"}`
+      `\n${pkg} — ${current ? `current: ${current}` : "(not installed)"}`
     );
-    console.log("可用版本:");
+    console.log("Available versions:");
     const display = versions.slice(0, 20);
     display.forEach((v, i) => {
-      const mark = v === current ? " (当前)" : "";
+      const mark = v === current ? " (current)" : "";
       console.log(`  ${i + 1}. ${v}${mark}`);
     });
     if (versions.length > 20) {
-      console.log(`  ... 共 ${versions.length} 个版本`);
+      console.log(`  ... ${versions.length} versions total`);
     }
 
-    const answer = await ask("选择版本编号 (0 退出): ");
+    const answer = await ask("Select version (0 to cancel): ");
     const idx = parseInt(answer, 10);
     if (idx === 0 || isNaN(idx) || idx < 1 || idx > display.length) {
       console.log("Cancelled.");
@@ -342,25 +342,25 @@ async function interactiveMenu(pm, dryRun) {
   const installed = await getInstalledVersions(pm);
 
   console.log(`\nbitget-hub v${CLI_VERSION}\n`);
-  console.log("? 请选择操作:");
-  console.log("  1. 升级全部包到最新版本");
-  console.log("  2. 升级指定包");
-  console.log("  3. 回滚指定包到历史版本");
-  console.log("  0. 退出");
+  console.log("? Select an action:");
+  console.log("  1. Upgrade all packages to latest");
+  console.log("  2. Upgrade a specific package");
+  console.log("  3. Rollback a specific package");
+  console.log("  0. Exit");
 
-  const choice = await ask("\n请输入编号: ");
+  const choice = await ask("\nEnter number: ");
 
   switch (choice) {
     case "1":
       return cmdUpgradeAll(pm, dryRun);
 
     case "2": {
-      console.log("\n选择要升级的包:");
+      console.log("\nSelect package to upgrade:");
       TARGET_PACKAGES.forEach((p, i) => {
         const ver = installed.get(p);
-        console.log(`  ${i + 1}. ${p} ${ver ? `(${ver})` : "(未安装)"}`);
+        console.log(`  ${i + 1}. ${p} ${ver ? `(${ver})` : "(not installed)"}`);
       });
-      const pkgChoice = await ask("请输入编号: ");
+      const pkgChoice = await ask("Enter number: ");
       const idx = parseInt(pkgChoice, 10) - 1;
       if (idx < 0 || idx >= TARGET_PACKAGES.length) {
         console.log("Cancelled.");
@@ -370,12 +370,12 @@ async function interactiveMenu(pm, dryRun) {
     }
 
     case "3": {
-      console.log("\n选择要回滚的包:");
+      console.log("\nSelect package to rollback:");
       TARGET_PACKAGES.forEach((p, i) => {
         const ver = installed.get(p);
-        console.log(`  ${i + 1}. ${p} ${ver ? `(${ver})` : "(未安装)"}`);
+        console.log(`  ${i + 1}. ${p} ${ver ? `(${ver})` : "(not installed)"}`);
       });
-      const pkgChoice = await ask("请输入编号: ");
+      const pkgChoice = await ask("Enter number: ");
       const idx = parseInt(pkgChoice, 10) - 1;
       if (idx < 0 || idx >= TARGET_PACKAGES.length) {
         console.log("Cancelled.");
