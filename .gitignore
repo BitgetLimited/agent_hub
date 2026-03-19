@@ -33,5 +33,5 @@ npm-debug.log*
 
 bitget-skill-workspace
 docs/API文档/
-docs/superpowers/
+docs/superpowers/*
 docs/plans/
