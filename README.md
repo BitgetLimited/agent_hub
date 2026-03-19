@@ -19,7 +19,7 @@
 
 ---
 
-**Bitget Agent Hub** connects AI assistants and automation tools to the [Bitget](https://www.bitget.com) exchange. Two integration modes for Bitget, plus a built-in **Skill Hub** — a collection of market-analysis skills for macro, on-chain intelligence, news briefing, sentiment, and technical analysis.
+**Bitget Agent Hub** connects AI assistants and automation tools to the [Bitget](https://www.bitget.com) exchange. Two integration modes, plus a built-in **Skill Hub** for market analysis:
 
 - **MCP Server** — for Claude Code, Cursor, Codex, and any MCP-compatible AI
 - **CLI (`bgc`) + Skill** — for shell-based AI agents (Claude Code skills, OpenClaw)
@@ -28,101 +28,83 @@ Once configured, your AI can check prices, query balances, place and cancel orde
 
 ---
 
-## Packages
+## Installation
 
-| Package | What it does | Install |
-|---------|-------------|---------|
-| [`bitget-mcp-server`](packages/bitget-mcp/) | MCP server — integrates with Claude, Cursor, Codex | `npx -y bitget-mcp-server` |
-| [`bitget-client`](packages/bitget-client/) | CLI tool (`bgc`) — shell access to all 36 tools | `npm install -g bitget-client` |
-| [`bitget-skill`](packages/bitget-skill/) | Claude Code skill — AI uses `bgc` as a live API bridge | `npm install -g bitget-skill` |
-| [`bitget-core`](packages/bitget-core/) | Shared REST client and tool definitions | internal |
+Use **`bitget-hub`** to install, upgrade, and manage all Bitget Agent Hub packages. No installation required — run directly via `npx`.
 
----
-
-## Skill Hub
-
-A built-in collection of market-analysis skills for Claude Code. Each skill instructs the AI how to use the market-data MCP server to deliver analyst-grade outputs.
-
-| Skill | What it does |
-|-------|-------------|
-| [`macro-analyst`](packages/bitget-skill-hub/skills/macro-analyst/SKILL.md) | Macro & cross-asset analysis — Fed policy, yield curve, CPI, BTC vs DXY/Nasdaq/Gold correlation, RISK-ON/OFF verdict |
-| [`market-intel`](packages/bitget-skill-hub/skills/market-intel/SKILL.md) | On-chain & institutional intelligence — ETF flows, whale activity, exchange flows, market cycle indicators (AHR999, Pi Cycle, Rainbow Chart), DeFi TVL |
-| [`news-briefing`](packages/bitget-skill-hub/skills/news-briefing/SKILL.md) | News aggregation & narrative synthesis — morning briefings, keyword search, Chinese social media pulse, KOL views |
-| [`sentiment-analyst`](packages/bitget-skill-hub/skills/sentiment-analyst/SKILL.md) | Sentiment & positioning analysis — Fear & Greed index, long/short ratios, funding rates, open interest, taker ratio |
-| [`technical-analysis`](packages/bitget-skill-hub/skills/technical-analysis/SKILL.md) | Technical analysis — 23 crypto indicators, 6 categories (Trend, Volatility, Oscillator, Volume, Momentum, S/R) |
-
-→ See [docs/skill-hub.md](docs/skill-hub.md) for full documentation.
-
-### Install Skills + MCP (one command)
+### Quick Start
 
 ```bash
-npm install -g bitget-skill-hub
+# Install everything and deploy skills to Claude Code (default)
+npx bitget-hub upgrade-all --target claude
 ```
 
-This installs all 5 Skill Hub skills and configures the market-data MCP server automatically for Claude Code. For Codex or OpenClaw:
+This installs all three packages globally and deploys skills to Claude Code:
+
+| Package | What it does |
+|---------|-------------|
+| [`bitget-client`](packages/bitget-client/) | CLI tool (`bgc`) — shell access to all Bitget tools |
+| [`bitget-skill`](packages/bitget-skill/) | Trading skill — AI uses `bgc` as a live API bridge |
+| [`bitget-skill-hub`](packages/bitget-skill-hub/) | 5 market-analysis skills (macro, sentiment, technical, news, on-chain) |
+
+### Deploy Skills to AI Tools
+
+Skills can be deployed to Claude Code, Codex, and OpenClaw:
 
 ```bash
-npx bitget-skill-hub --target codex
-npx bitget-skill-hub --target openclaw
-# or all at once:
-npx bitget-skill-hub --target all
+# Deploy to a specific tool
+npx bitget-hub install --target codex
+
+# Deploy to multiple tools
+npx bitget-hub install --target claude,codex
+
+# Deploy to all supported tools
+npx bitget-hub install --target all
+
+# Deploy a single skill package
+npx bitget-hub install bitget-skill --target claude
 ```
 
-### Required: Market Data MCP Server
-
-All Skill Hub skills depend on the **market-data MCP server** (HTTP). No API key required — the server provides public market data.
-
-#### Claude Code
+### Install or Upgrade Individual Packages
 
 ```bash
-claude mcp add -s user \
-  market-data \
-  --transport http \
-  -- https://datahub.noxiaohao.com/mcp
+# Upgrade a single package
+npx bitget-hub upgrade bitget-client
+
+# Upgrade and deploy skills
+npx bitget-hub upgrade bitget-skill --target claude
+
+# Rollback to a specific version
+npx bitget-hub rollback bitget-skill --to 1.0.0
 ```
 
-#### Codex
+### Interactive Mode
 
-Add to `~/.codex/config.toml` (or the project-level `codex.toml`):
-
-```toml
-[[mcp_servers]]
-name = "market-data"
-type = "http"
-url = "https://datahub.noxiaohao.com/mcp"
+```bash
+npx bitget-hub
 ```
 
-#### OpenClaw
+Launches an interactive menu to upgrade, rollback, or install skills — no flags needed.
 
-Add to your OpenClaw agent config:
-
-```json
-{
-  "mcp_servers": {
-    "market-data": {
-      "transport": "http",
-      "url": "https://datahub.noxiaohao.com/mcp"
-    }
-  }
-}
-```
-
----
-
-
-## Get API Credentials
+### Set Credentials
 
 All integrations need a Bitget API key for private endpoints (account, trading). Public market data works without credentials.
 
 1. Log in to [bitget.com](https://www.bitget.com) → **Settings → API Management**
 2. Create a new API key — select **Read** and/or **Trade** permissions
-3. Save your **API Key**, **Secret Key**, and **Passphrase**
+3. Set environment variables:
+
+```bash
+export BITGET_API_KEY="your-api-key"
+export BITGET_SECRET_KEY="your-secret-key"
+export BITGET_PASSPHRASE="your-passphrase"
+```
 
 ---
 
 ## MCP Server
 
-Gives AI assistants direct access to 36 Bitget tools via the [Model Context Protocol](https://modelcontextprotocol.io).
+Gives AI assistants direct access to Bitget tools via the [Model Context Protocol](https://modelcontextprotocol.io). No global install needed — runs via `npx`.
 
 ### Claude Code
 
@@ -137,7 +119,7 @@ claude mcp add -s user \
 
 ### Codex
 
-Add to `~/.codex/config.toml` (or the project-level `codex.toml`):
+Add to `~/.codex/config.toml`:
 
 ```toml
 [[mcp_servers]]
@@ -153,7 +135,7 @@ BITGET_PASSPHRASE = "your-passphrase"
 
 ### OpenClaw
 
-OpenClaw invokes MCP servers via its tool gateway. Add to your OpenClaw agent config:
+Add to your OpenClaw agent config:
 
 ```json
 {
@@ -171,91 +153,42 @@ OpenClaw invokes MCP servers via its tool gateway. Add to your OpenClaw agent co
 }
 ```
 
-### Other clients (Claude Desktop, Cursor, VS Code Copilot, Windsurf)
-
-→ See [docs/packages/bitget-mcp.md](docs/packages/bitget-mcp.md) for per-client config snippets.
+→ See [docs/packages/bitget-mcp.md](docs/packages/bitget-mcp.md) for more clients (Claude Desktop, Cursor, VS Code Copilot, Windsurf).
 
 ---
 
 ## CLI Tool (`bgc`)
 
-A command-line interface for all 36 Bitget tools. Outputs JSON — ideal for scripting and AI agent shell use.
+A command-line interface for all Bitget tools. Outputs JSON — ideal for scripting and AI agent shell use.
 
 ```bash
-npm install -g bitget-client
-
-export BITGET_API_KEY="your-api-key"
-export BITGET_SECRET_KEY="your-secret-key"
-export BITGET_PASSPHRASE="your-passphrase"
-
 # Market data (no credentials needed)
 bgc spot spot_get_ticker --symbol BTCUSDT
-bgc futures futures_get_funding_rate --productType USDT-FUTURES --symbol BTCUSDT
 
 # Account queries
 bgc account get_account_assets
-bgc futures futures_get_positions --productType USDT-FUTURES
 
-# Trading (shows confirmation prompt first)
+# Trading
 bgc spot spot_place_order --orders '[{"symbol":"BTCUSDT","side":"buy","orderType":"limit","price":"95000","size":"0.01"}]'
 ```
 
 ---
 
-## Claude Code Skill
+## Skill Hub
 
-The skill lets Claude Code autonomously call Bitget APIs by running `bgc` commands via the Bash tool — no server process required.
+5 market-analysis skills for Claude Code, Codex, and OpenClaw. Each skill instructs the AI how to use the market-data MCP server to deliver analyst-grade outputs.
 
-```bash
-# 1. Install bgc
-npm install -g bitget-client
+| Skill | What it does |
+|-------|-------------|
+| [`macro-analyst`](packages/bitget-skill-hub/skills/macro-analyst/SKILL.md) | Macro & cross-asset analysis — Fed policy, yield curve, BTC vs DXY/Nasdaq/Gold |
+| [`market-intel`](packages/bitget-skill-hub/skills/market-intel/SKILL.md) | On-chain & institutional intelligence — ETF flows, whale activity, DeFi TVL |
+| [`news-briefing`](packages/bitget-skill-hub/skills/news-briefing/SKILL.md) | News aggregation & narrative synthesis — morning briefings, keyword search |
+| [`sentiment-analyst`](packages/bitget-skill-hub/skills/sentiment-analyst/SKILL.md) | Sentiment & positioning — Fear & Greed, long/short ratios, funding rates |
+| [`technical-analysis`](packages/bitget-skill-hub/skills/technical-analysis/SKILL.md) | Technical analysis — 23 indicators across 6 categories |
 
-# 2. Install skill (auto-copies to ~/.claude/skills/bitget-skill/)
-npm install -g bitget-skill
+The `technical-analysis` skill requires Python: `pip install pandas numpy`
 
-# 3. Set credentials in your shell environment
-export BITGET_API_KEY="your-api-key"
-export BITGET_SECRET_KEY="your-secret-key"
-export BITGET_PASSPHRASE="your-passphrase"
-```
-
-After installation, Claude Code picks up the skill automatically. Try: *"查一下我的 BTC 仓位"* or *"What's the current BTC price?"*
-
-→ See [docs/packages/bitget-skill.md](docs/packages/bitget-skill.md) for details.
-
----
-
-## Technical Analysis Skill
-
-23 crypto technical indicators across 6 categories (Trend, Volatility, Oscillator, Volume, Momentum, Support/Resistance). Each indicator outputs recent time-series data, giving AI full visibility into trend evolution for richer, more accurate analysis. No API key required for public market data.
-
-The `technical-analysis` skill is included in the **Skill Hub**:
-
-```bash
-# Install all 5 market-analysis skills (includes technical-analysis)
-npm install -g bitget-skill-hub
-
-# Python dependencies required for technical-analysis
-pip install pandas numpy
-```
-
-After installation, try: *"BTC 1-hour technical analysis"* or *"Is ETH overbought right now?"*
-
-→ See [packages/bitget-skill-hub/skills/technical-analysis/](packages/bitget-skill-hub/skills/technical-analysis/) for details.
-
----
-
-## OpenClaw Automation
-
-For OpenClaw webhook-triggered automation, use the `bgc` CLI directly in your action scripts:
-
-```bash
-#!/bin/bash
-# Example: alert action that checks balance when triggered
-bgc account get_account_assets | jq '.data.data[] | select(.coin == "USDT")'
-```
-
-Or use the MCP integration above to give your OpenClaw AI agent full Bitget tool access.
+→ See [docs/skill-hub.md](docs/skill-hub.md) for full documentation.
 
 ---
 
@@ -272,7 +205,6 @@ Or use the MCP integration above to give your OpenClaw AI agent full Bitget tool
 | `earn` | 3 | — |
 | `p2p` | 2 | — |
 | `broker` | 3 | — |
-
 
 Default: `spot + futures + account` = 36 tools (fits within Cursor's 40-tool limit).
 Load everything: `--modules all`
