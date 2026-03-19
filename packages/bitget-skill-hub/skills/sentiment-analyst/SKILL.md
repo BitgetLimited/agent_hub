@@ -100,7 +100,7 @@ Taker ratio {value} → {Aggressive buying / Neutral / Aggressive selling}
 - For altcoins: use the coin's futures symbol format, e.g., `ETHUSDT`, `SOLUSDT`
 - On-chain flow data (exchange balance, whale transfers) is not available in this server —
   note coverage gaps neutrally if asked
-- Combine with `technical-analyst` skill for complete setup assessment
+- Combine with `technical-analysis` skill for complete setup assessment
 - These are positioning signals, not financial advice
 
 ## Error Handling

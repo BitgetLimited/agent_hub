@@ -66,10 +66,11 @@ bgc futures futures_place_order --orders '[{
 
 ## ⚠️ CRITICAL: TP/SL Without Plan Orders
 
-**There is no `futures_place_plan_order` in the bgc CLI.** The only options are:
+**There is no `futures_place_plan_order` in the bgc CLI.** The options are:
 
 1. **Preset TP/SL on the entry order** — `presetStopSurplusPrice` / `presetStopLossPrice` set at order placement
-2. **Manual limit order with `reduceOnly=YES`** — place a separate limit close order at your target price
+2. **Add/modify TP/SL after placement** — `futures_modify_order` with `newPresetStopSurplusPrice` / `newPresetStopLossPrice`; does **not** cancel the order; pass `"0"` to delete
+3. **Manual limit order with `reduceOnly=YES`** — place a separate limit close order at your target price
 
 ### TP/SL Preset (set when opening position)
 

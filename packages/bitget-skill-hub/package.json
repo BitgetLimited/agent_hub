@@ -1,6 +1,6 @@
 {
   "name": "bitget-skill-hub",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "One-click install for Bitget market-analysis skills (macro, sentiment, technical, news, on-chain)",
   "type": "module",
   "license": "MIT",

@@ -18,7 +18,6 @@
  *   2. bitget-client        (depends on bitget-core)
  *   2. bitget-mcp-server    (depends on bitget-core)
  *   3. bitget-skill         (devDep on bitget-core — no runtime deps)
- *   3. bitget-agent-account-skill  (devDep on bitget-core — no runtime deps)
  *
  * Prerequisites:
  *   - pnpm installed
@@ -43,7 +42,6 @@ const PUBLISH_ORDER = [
   "bitget-mcp",
   // Tier 3: skill packages (no runtime workspace deps)
   "bitget-skill",
-  "bitget-agent-account-skill",
 ];
 
 function parseArgs() {

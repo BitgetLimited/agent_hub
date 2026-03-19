@@ -90,20 +90,22 @@ Crypto market sentiment and trader positioning analysis.
 
 ---
 
-### `technical-analyst`
-**Path:** `packages/bitget-skill-hub/skills/technical-analyst/SKILL.md`
+### `technical-analysis`
+**Path:** `packages/bitget-skill-hub/skills/technical-analysis/SKILL.md`
 
-Technical analysis and strategy backtesting for crypto assets.
+23 crypto technical indicators across 6 categories — local Python-based computation with Bitget API data.
 
 **What it does:**
-- Runs **full technical analysis** on any crypto pair: RSI, MACD, Bollinger Bands, MA, EMA, ATR, support/resistance — all in one call
-- **Batch scans** multiple symbols at once for a market-wide view
-- Produces a clear verdict: `STRONG BULLISH` → `BULLISH` → `NEUTRAL` → `BEARISH` → `STRONG BEARISH`
-- Identifies **price levels**: key support/resistance zones with ATR-based stop suggestions
-- **Backtests trading strategies** against historical data — compares strategy returns vs buy-and-hold, Sharpe ratio, max drawdown, win rate, profit factor
-- Supports all timeframes from scalp (`5m`) to position (`1w`)
+- Computes **23 technical indicators** across 6 categories: Trend (MA, EMA, SAR, AVL, MACD, DMI, SuperTrend), Volatility (BOLL, ATR), Oscillator (KDJ, RSI, ROC, CCI, WR, StochRSI), Volume (VOL, OBV, MFI, VWAP), Momentum (DMA, MTM, EMV), Support/Resistance (FIB)
+- Outputs **time-series data** (not just single points) — AI can observe trend evolution, convergence/divergence, and write richer analysis
+- Fetches kline data directly from **Bitget API** (spot and futures) or reads local CSV/Parquet/JSON files
+- Supports all timeframes from scalp (`1min`) to position (`1w`)
+- Provides **scenario-based defaults** for common queries (comprehensive analysis, trend direction, overbought/oversold, volume analysis, momentum, support/resistance, volatility)
+- Exports full indicator data to CSV for plotting or downstream backtesting
 
-**Trigger phrases:** RSI, MACD, Bollinger Bands, EMA, support/resistance, overbought, oversold, buy signal, backtest, 4h analysis, should I buy/sell…
+**Trigger phrases:** technical analysis, indicator, trend, overbought, oversold, support, resistance, momentum, volatility, volume, MACD, RSI, KDJ, BOLL, SuperTrend, EMA, MA, ATR, VWAP, FIB, StochRSI, MFI, DMI, OBV, 4h analysis, should I buy/sell…
+
+**Requirements:** Python with `pandas` and `numpy` (`pip install pandas numpy`)
 
 ---
 
@@ -113,10 +115,10 @@ The five skills are designed to complement each other for a complete market pict
 
 | Question type | Skills to combine |
 |---------------|-------------------|
-| Full market assessment | `macro-analyst` + `sentiment-analyst` + `technical-analyst` |
-| Is now a good time to buy BTC? | `market-intel` (cycle position) + `sentiment-analyst` (positioning) + `technical-analyst` (entry levels) |
+| Full market assessment | `macro-analyst` + `sentiment-analyst` + `technical-analysis` |
+| Is now a good time to buy BTC? | `market-intel` (cycle position) + `sentiment-analyst` (positioning) + `technical-analysis` (entry levels) |
 | What's moving markets today? | `news-briefing` + `macro-analyst` |
-| Is this altcoin worth looking at? | `market-intel` (DEX/on-chain) + `technical-analyst` (TA) + `sentiment-analyst` (crowd positioning) |
+| Is this altcoin worth looking at? | `market-intel` (DEX/on-chain) + `technical-analysis` (TA) + `sentiment-analyst` (crowd positioning) |
 
 ---
 
@@ -125,21 +127,29 @@ The five skills are designed to complement each other for a complete market pict
 ```
 packages/bitget-skill-hub/skills/
 ├── macro-analyst/
-│   └── SKILL.md          # Macro & cross-asset analysis
+│   └── SKILL.md              # Macro & cross-asset analysis
 ├── market-intel/
-│   └── SKILL.md          # On-chain & institutional intelligence
+│   └── SKILL.md              # On-chain & institutional intelligence
 ├── news-briefing/
-│   └── SKILL.md          # News aggregation & narrative synthesis
+│   └── SKILL.md              # News aggregation & narrative synthesis
 ├── sentiment-analyst/
-│   └── SKILL.md          # Sentiment & positioning analysis
-└── technical-analyst/
-    └── SKILL.md          # Technical analysis & backtesting
+│   └── SKILL.md              # Sentiment & positioning analysis
+└── technical-analysis/
+    ├── SKILL.md              # Technical analysis — 23 indicators, 6 categories
+    ├── references/
+    │   ├── indicators.md     # Indicator quick reference
+    │   └── scenarios.md      # Scenario-based indicator selection
+    └── src/
+        ├── kline_indicators.py       # 23 indicator implementations
+        └── kline_indicator_utils.py  # Utility layer & IndicatorManager
 ```
 
 ---
 
 ## Required MCP Server
 
-All skills depend on the **market-data MCP server** (`https://datahub.noxiaohao.com/mcp`) for live data. Configure it in your Claude Code MCP settings before using these skills.
+Most skills depend on the **market-data MCP server** (`https://datahub.noxiaohao.com/mcp`) for live data. Configure it in your Claude Code MCP settings before using these skills.
 
-The server provides: `technical_analysis`, `backtest`, `crypto_market`, `defi_analytics`, `dex_market`, `sentiment_index`, `derivatives_sentiment`, `news_feed`, `social_trending`, `tradfi_news`, `network_status`, `rates_yields`, `macro_indicators`, `cross_asset`, `global_assets`, `global_data`, `cn_market`.
+The server provides: `crypto_market`, `defi_analytics`, `dex_market`, `sentiment_index`, `derivatives_sentiment`, `news_feed`, `social_trending`, `tradfi_news`, `network_status`, `rates_yields`, `macro_indicators`, `cross_asset`, `global_assets`, `global_data`, `cn_market`.
+
+> **Note:** The `technical-analysis` skill does **not** use the MCP server. It fetches kline data directly from the Bitget API and runs indicator calculations locally in Python. Requires `pip install pandas numpy`.

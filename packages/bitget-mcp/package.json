@@ -21,7 +21,7 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",
-    "prepublishOnly": "npm run typecheck && npm run build"
+    "prepublishOnly": "pnpm run typecheck && pnpm run build"
   },
   "engines": {
     "node": ">=18"

@@ -12,17 +12,11 @@ importers:
         specifier: ^2.1.4
         version: 2.1.4
 
-  packages/bitget-agent-account-skill:
-    devDependencies:
-      bitget-core:
-        specifier: workspace:*
-        version: link:../bitget-core
-
   packages/bitget-client:
     dependencies:
       bitget-core:
-        specifier: workspace:*
-        version: link:../bitget-core
+        specifier: 1.1.0
+        version: 1.1.0
     devDependencies:
       '@types/node':
         specifier: ^25.2.2
@@ -61,8 +55,6 @@ importers:
       vitest:
         specifier: ^2.0.0
         version: 2.1.9(@types/node@25.3.3)
-
-  packages/bitget-indicator-skill: {}
 
   packages/bitget-mcp:
     dependencies:
@@ -634,6 +626,10 @@ packages:
 
   bitget-api-node-sdk@2.1.4:
     resolution: {integrity: sha512-GYBA7pYw+xejV8s9MZILXSAbrA76dhn+Gn67sCQPwAIbw7u3gqL70o4owmZtk7hRlaoaEeG1+UCuDpET9/tKLA==}
+
+  bitget-core@1.1.0:
+    resolution: {integrity: sha512-FIk9jAikLbVPFmlAeqebFjn5VDsyKievq1cHBa80LUnNx4i8NuqJuF5IMxIYxcRS08V5D2H2BPaezGSaZtxfKA==}
+    engines: {node: '>=18'}
 
   body-parser@2.2.2:
     resolution: {integrity: sha512-oP5VkATKlNwcgvxi0vM0p/D3n2C3EReYVX+DNYs5TjZFn/oQt2j+4sVJtSMr18pdRr8wjTcBl6LoV+FUwzPmNA==}
@@ -1684,6 +1680,10 @@ snapshots:
       - bufferutil
       - supports-color
       - utf-8-validate
+
+  bitget-core@1.1.0:
+    dependencies:
+      zod: 3.25.76
 
   body-parser@2.2.2:
     dependencies:

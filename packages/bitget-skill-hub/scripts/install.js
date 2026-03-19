@@ -31,8 +31,13 @@ const SKILL_NAMES = [
   "market-intel",
   "news-briefing",
   "sentiment-analyst",
-  "technical-analyst",
+  "technical-analysis",
 ];
+
+const TECHNICAL_ANALYSIS_EXTRAS = {
+  references: ["scenarios.md", "indicators.md"],
+  src: ["kline_indicator_utils.py", "kline_indicators.py"],
+};
 
 const TARGETS = {
   claude: { label: "Claude Code", skillsDir: join(HOME, ".claude", "skills") },
@@ -118,6 +123,19 @@ function installSkillsTo(targetKey) {
     const destDir = join(skillsDir, skillName);
     mkdirSync(destDir, { recursive: true });
     copyFileSync(join(PKG_ROOT, "skills", skillName, "SKILL.md"), join(destDir, "SKILL.md"));
+
+    if (skillName === "technical-analysis") {
+      for (const [subDir, files] of Object.entries(TECHNICAL_ANALYSIS_EXTRAS)) {
+        const destSubDir = join(destDir, subDir);
+        mkdirSync(destSubDir, { recursive: true });
+        for (const f of files) {
+          const src = join(PKG_ROOT, "skills", skillName, subDir, f);
+          if (existsSync(src)) {
+            copyFileSync(src, join(destSubDir, f));
+          }
+        }
+      }
+    }
   }
   console.log(`  ✓ ${label} skills → ${skillsDir}`);
 }
@@ -198,9 +216,11 @@ async function main() {
   }
 
   console.log(`\nDone — installed to ${ok} of ${selectedKeys.length} targets.`);
-  if (selectedKeys.includes("claude"))   console.log("\nClaude Code: restart Claude Code or run: claude skills list");
-  if (selectedKeys.includes("codex"))    console.log("\nCodex: skills will be loaded from ~/.codex/skills/");
-  if (selectedKeys.includes("openclaw")) console.log("\nOpenClaw: skills will be loaded from ~/.openclaw/skills/");
+  console.log("\nPython dependencies for technical-analysis skill:");
+  console.log("  pip install pandas numpy\n");
+  if (selectedKeys.includes("claude"))   console.log("Claude Code: restart Claude Code or run: claude skills list");
+  if (selectedKeys.includes("codex"))    console.log("Codex: skills will be loaded from ~/.codex/skills/");
+  if (selectedKeys.includes("openclaw")) console.log("OpenClaw: skills will be loaded from ~/.openclaw/skills/");
 }
 
 main();

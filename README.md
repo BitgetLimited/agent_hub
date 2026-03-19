@@ -35,7 +35,6 @@ Once configured, your AI can check prices, query balances, place and cancel orde
 | [`bitget-mcp-server`](packages/bitget-mcp/) | MCP server — integrates with Claude, Cursor, Codex | `npx -y bitget-mcp-server` |
 | [`bitget-client`](packages/bitget-client/) | CLI tool (`bgc`) — shell access to all 36 tools | `npm install -g bitget-client` |
 | [`bitget-skill`](packages/bitget-skill/) | Claude Code skill — AI uses `bgc` as a live API bridge | `npm install -g bitget-skill` |
-| [`bitget-indicator-skill`](packages/bitget-indicator-skill/) | Technical indicator skill — 23 crypto indicators, 6 categories | `npm install -g bitget-indicator-skill` |
 | [`bitget-core`](packages/bitget-core/) | Shared REST client and tool definitions | internal |
 
 ---
@@ -50,7 +49,7 @@ A built-in collection of market-analysis skills for Claude Code. Each skill inst
 | [`market-intel`](packages/bitget-skill-hub/skills/market-intel/SKILL.md) | On-chain & institutional intelligence — ETF flows, whale activity, exchange flows, market cycle indicators (AHR999, Pi Cycle, Rainbow Chart), DeFi TVL |
 | [`news-briefing`](packages/bitget-skill-hub/skills/news-briefing/SKILL.md) | News aggregation & narrative synthesis — morning briefings, keyword search, Chinese social media pulse, KOL views |
 | [`sentiment-analyst`](packages/bitget-skill-hub/skills/sentiment-analyst/SKILL.md) | Sentiment & positioning analysis — Fear & Greed index, long/short ratios, funding rates, open interest, taker ratio |
-| [`technical-analyst`](packages/bitget-skill-hub/skills/technical-analyst/SKILL.md) | Technical analysis & backtesting — RSI, MACD, Bollinger Bands, support/resistance, strategy backtests vs buy-and-hold |
+| [`technical-analysis`](packages/bitget-skill-hub/skills/technical-analysis/SKILL.md) | Technical analysis — 23 crypto indicators, 6 categories (Trend, Volatility, Oscillator, Volume, Momentum, S/R) |
 
 → See [docs/skill-hub.md](docs/skill-hub.md) for full documentation.
 
@@ -226,21 +225,23 @@ After installation, Claude Code picks up the skill automatically. Try: *"查一�
 
 ---
 
-## Technical Indicator Skill
+## Technical Analysis Skill
 
 23 crypto technical indicators across 6 categories (Trend, Volatility, Oscillator, Volume, Momentum, Support/Resistance). Each indicator outputs recent time-series data, giving AI full visibility into trend evolution for richer, more accurate analysis. No API key required for public market data.
 
-```bash
-# 1. Install skill (auto-copies to ~/.claude/skills/bitget-indicator-skill/)
-npm install -g bitget-indicator-skill
+The `technical-analysis` skill is included in the **Skill Hub**:
 
-# 2. Ensure Python dependencies are installed
+```bash
+# Install all 5 market-analysis skills (includes technical-analysis)
+npm install -g bitget-skill-hub
+
+# Python dependencies required for technical-analysis
 pip install pandas numpy
 ```
 
 After installation, try: *"BTC 1-hour technical analysis"* or *"Is ETH overbought right now?"*
 
-→ See [packages/bitget-indicator-skill/](packages/bitget-indicator-skill/) for details.
+→ See [packages/bitget-skill-hub/skills/technical-analysis/](packages/bitget-skill-hub/skills/technical-analysis/) for details.
 
 ---
 
