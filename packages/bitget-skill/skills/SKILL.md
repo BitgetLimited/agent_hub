@@ -57,6 +57,7 @@ For trading interfaces, detailed reference docs with full parameter descriptions
 | `trading/spot-get-orders.md` | Query open/history spot orders |
 | `trading/spot-plan-orders.md` | Spot trigger/plan orders (stop-loss, breakout) |
 | `trading/futures-place-order.md` | Futures orders, one-way/hedge mode, TP/SL |
+| `trading/futures-modify-order.md` | Modify pending futures order: adjust TP/SL, price, size |
 | `trading/futures-cancel-orders.md` | Cancel futures orders |
 | `trading/futures-get-orders.md` | Query futures orders and fills |
 | `trading/futures-positions.md` | Current/history positions, PnL, liquidation price |
@@ -82,9 +83,12 @@ Note: `holdSide` (long/short) and `posMode` (one_way_mode/hedge_mode).
 
 > **Selling to close a short is WRONG — it opens more short.**
 
-### TP/SL options (bgc has NO futures plan orders)
+### TP/SL options
 1. **Preset at entry**: `presetStopSurplusPrice` / `presetStopLossPrice` on the opening order
-2. **Manual limit + reduceOnly**: place a limit close order at target price after opening
+2. **Add/modify after entry**: `futures_modify_order` with `newPresetStopSurplusPrice` / `newPresetStopLossPrice` — does NOT cancel the order; pass `"0"` to delete a preset
+3. **Manual limit + reduceOnly**: place a separate limit close order at target price (use as fallback)
+
+Read `trading/futures-modify-order.md` before using `futures_modify_order`.
 
 ## Module quick-reference
 

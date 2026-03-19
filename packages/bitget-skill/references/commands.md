@@ -429,6 +429,32 @@ Place one or more futures orders with optional TP/SL. [CAUTION] Executes real tr
 bgc futures futures_place_order --orders <value>
 ```
 
+### `futures_modify_order`
+
+Modify a pending futures order: adjust TP/SL prices, size, or limit price. Modifying TP/SL only does NOT cancel the order. Modifying size/price cancels and recreates it. Pass '0' for newPresetStopSurplusPrice or newPresetStopLossPrice to delete that preset. [CAUTION] Affects live orders. Private endpoint. Rate limit: 10 req/s per UID.
+
+**Write operation:** Yes — requires confirmation
+
+**Parameters:**
+
+| Name | Type | Required | Description |
+|------|------|----------|-------------|
+| `symbol` | string | Yes | Trading pair, e.g. BTCUSDT. |
+| `productType` | string | Yes | Futures product type. |
+| `marginCoin` | string | Yes | Margin asset, e.g. USDT. |
+| `orderId` | string | No | Order ID. One of orderId or clientOid required. |
+| `clientOid` | string | No | Custom order ID. orderId takes priority if both provided. |
+| `newClientOid` | string | Yes | New custom order ID for the modified order. |
+| `newSize` | string | No | New order quantity. Must be provided together with newPrice. |
+| `newPrice` | string | No | New limit price. Must be provided together with newSize. |
+| `newPresetStopSurplusPrice` | string | No | New take-profit trigger price. Pass '0' to delete. |
+| `newPresetStopLossPrice` | string | No | New stop-loss trigger price. Pass '0' to delete. |
+
+**Example:**
+```bash
+bgc futures futures_modify_order --symbol <value> --productType <value>
+```
+
 ### `futures_cancel_orders`
 
 Cancel futures orders by order id, batch ids, or cancel-all mode. Private endpoint. Rate limit: 10 req/s per UID.

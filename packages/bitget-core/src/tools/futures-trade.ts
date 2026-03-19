@@ -117,6 +117,68 @@ export function registerFuturesTradeTools(): ToolSpec[] {
       },
     },
     {
+      name: "futures_modify_order",
+      module: "futures",
+      description:
+        "Modify a pending futures order: adjust TP/SL prices, size, or limit price. Modifying TP/SL only does NOT cancel the order. Modifying size/price cancels and recreates it. Pass '0' for newPresetStopSurplusPrice or newPresetStopLossPrice to delete that preset. [CAUTION] Affects live orders. Private endpoint. Rate limit: 10 req/s per UID.",
+      isWrite: true,
+      inputSchema: {
+        type: "object",
+        properties: {
+          symbol: { type: "string", description: "Trading pair, e.g. BTCUSDT." },
+          productType: { type: "string", enum: [...PRODUCT_TYPES], description: "Futures product type." },
+          marginCoin: { type: "string", description: "Margin asset, e.g. USDT." },
+          orderId: { type: "string", description: "Order ID. One of orderId or clientOid required." },
+          clientOid: { type: "string", description: "Custom order ID. orderId takes priority if both provided." },
+          newClientOid: { type: "string", description: "New custom order ID for the modified order." },
+          newSize: { type: "string", description: "New order quantity. Must be provided together with newPrice." },
+          newPrice: { type: "string", description: "New limit price. Must be provided together with newSize." },
+          newPresetStopSurplusPrice: { type: "string", description: "New take-profit trigger price. Pass '0' to delete." },
+          newPresetStopLossPrice: { type: "string", description: "New stop-loss trigger price. Pass '0' to delete." },
+        },
+        required: ["symbol", "productType", "marginCoin", "newClientOid"],
+      },
+      handler: async (rawArgs, context) => {
+        const args = asRecord(rawArgs);
+        const orderId = readString(args, "orderId");
+        const clientOid = readString(args, "clientOid");
+        if (!orderId && !clientOid) {
+          throw new ValidationError('Provide at least one of "orderId" or "clientOid".');
+        }
+        const newSize = readString(args, "newSize");
+        const newPrice = readString(args, "newPrice");
+        if ((newSize && !newPrice) || (!newSize && newPrice)) {
+          throw new ValidationError('"newSize" and "newPrice" must be provided together.');
+        }
+        const newPresetStopSurplusPrice = readString(args, "newPresetStopSurplusPrice");
+        const newPresetStopLossPrice = readString(args, "newPresetStopLossPrice");
+        if (!newSize && !newPresetStopSurplusPrice && !newPresetStopLossPrice) {
+          throw new ValidationError(
+            'Provide at least one of: "newSize"+"newPrice", "newPresetStopSurplusPrice", or "newPresetStopLossPrice".',
+          );
+        }
+        const productType = requireString(args, "productType");
+        assertEnum(productType, "productType", PRODUCT_TYPES);
+        const response = await context.client.privatePost(
+          "/api/v2/mix/order/modify-order",
+          compactObject({
+            symbol: requireString(args, "symbol"),
+            productType,
+            marginCoin: requireString(args, "marginCoin"),
+            orderId,
+            clientOid,
+            newClientOid: requireString(args, "newClientOid"),
+            newSize,
+            newPrice,
+            newPresetStopSurplusPrice,
+            newPresetStopLossPrice,
+          }),
+          privateRateLimit("futures_modify_order", 10),
+        );
+        return normalize(response);
+      },
+    },
+    {
       name: "futures_cancel_orders",
       module: "futures",
       description:
