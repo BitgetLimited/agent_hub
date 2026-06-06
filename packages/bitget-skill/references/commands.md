@@ -414,7 +414,7 @@ bgc futures futures_get_open_interest --productType <value> --symbol <value>
 
 ### `futures_place_order`
 
-Place one or more futures orders with optional TP/SL. [CAUTION] Executes real trades. Private endpoint. Rate limit: 10 req/s per UID.
+Place one or more futures orders. Attach TP/SL on open by adding presetStopSurplusPrice (take-profit trigger) and presetStopLossPrice (stop-loss trigger) to an order object; optionally presetStopSurplusExecutePrice / presetStopLossExecutePrice for the execution price. [CAUTION] Executes real trades. Private endpoint. Rate limit: 10 req/s per UID.
 
 **Write operation:** Yes — requires confirmation
 
@@ -457,7 +457,7 @@ bgc futures futures_modify_order --symbol <value> --productType <value>
 
 ### `futures_cancel_orders`
 
-Cancel futures orders by order id, batch ids, or cancel-all mode. Private endpoint. Rate limit: 10 req/s per UID.
+Cancel futures orders by order id, batch ids, or cancel-all mode. Pass planType (normal_plan, track_plan, or profit_loss) to cancel TP/SL or trigger (plan) orders instead of regular orders. Private endpoint. Rate limit: 10 req/s per UID.
 
 **Write operation:** Yes — requires confirmation
 
@@ -471,6 +471,7 @@ Cancel futures orders by order id, batch ids, or cancel-all mode. Private endpoi
 | `orderIds` | array | No |  |
 | `cancelAll` | boolean | No |  |
 | `marginCoin` | string | No |  |
+| `planType` | string | No | Set to cancel TP/SL or trigger orders via the plan-order endpoint. |
 
 **Example:**
 ```bash
@@ -479,7 +480,7 @@ bgc futures futures_cancel_orders --productType <value> --symbol <value>
 
 ### `futures_get_orders`
 
-Query futures orders by id, open status, or history. Private endpoint. Rate limit: 10 req/s per UID.
+Query futures orders by id, open status, or history. Pass planType (normal_plan, track_plan, or profit_loss) to list TP/SL or trigger (plan) orders instead of regular orders. Private endpoint. Rate limit: 10 req/s per UID.
 
 **Write operation:** No
 
@@ -491,6 +492,7 @@ Query futures orders by id, open status, or history. Private endpoint. Rate limi
 | `orderId` | string | No |  |
 | `symbol` | string | No |  |
 | `status` | string | No |  |
+| `planType` | string | No | Set to list TP/SL or trigger orders via the plan-order endpoint. |
 | `startTime` | string | No |  |
 | `endTime` | string | No |  |
 | `limit` | number | No |  |
@@ -542,6 +544,43 @@ Get current or historical futures positions. Private endpoint. Rate limit: 10 re
 bgc futures futures_get_positions --productType <value> --symbol <value>
 ```
 
+### `futures_place_tpsl`
+
+Place a TP/SL or trigger order. mode='position' sets TP/SL on an existing position (planType: profit_plan, loss_plan, moving_plan, pos_profit, pos_loss; use size for partial profit_plan/loss_plan, omit for whole-position pos_profit/pos_loss; rangeRate is the moving_plan callback rate). mode='plan' places a trigger/stop-market order (planType: normal_plan, track_plan; needs side, tradeSide, orderType, size, triggerPrice). executePrice '0' or omitted = market. [CAUTION] Executes real trades. Private endpoint. Rate limit: 10 req/s per UID.
+
+**Write operation:** Yes — requires confirmation
+
+**Parameters:**
+
+| Name | Type | Required | Description |
+|------|------|----------|-------------|
+| `mode` | string | Yes | 'position' = TP/SL on a position; 'plan' = trigger order. |
+| `symbol` | string | Yes | Trading pair, e.g. BTCUSDT. |
+| `productType` | string | Yes |  |
+| `marginCoin` | string | Yes | Margin asset, e.g. USDT. |
+| `planType` | string | Yes | position: profit_plan|loss_plan|moving_plan|pos_profit|pos_loss. plan: normal_plan|track_plan. |
+| `triggerPrice` | string | Yes | Trigger price. |
+| `triggerType` | string | No |  |
+| `executePrice` | string | No | Execution price; '0' or omitted = market. |
+| `holdSide` | string | No | position mode: side of the position. |
+| `size` | string | No | Order or close size. |
+| `rangeRate` | string | No | position moving_plan callback rate. |
+| `marginMode` | string | No | plan mode; default crossed. |
+| `side` | string | No | plan mode. |
+| `tradeSide` | string | No | plan mode (hedge). |
+| `orderType` | string | No | plan mode. |
+| `price` | string | No | plan mode limit price. |
+| `callbackRatio` | string | No | plan mode track_plan callback ratio. |
+| `reduceOnly` | string | No | plan mode. |
+| `presetStopSurplusPrice` | string | No | plan mode nested take-profit trigger price. |
+| `presetStopLossPrice` | string | No | plan mode nested stop-loss trigger price. |
+| `clientOid` | string | No |  |
+
+**Example:**
+```bash
+bgc futures futures_place_tpsl --mode <value> --symbol <value>
+```
+
 ### `futures_set_leverage`
 
 Set futures leverage for symbol and margin coin. [CAUTION] Affects risk exposure. Private endpoint. Rate limit: 5 req/s per UID.
@@ -583,6 +622,36 @@ Update futures margin mode, position mode, or auto-margin setting. [CAUTION] Aff
 **Example:**
 ```bash
 bgc futures futures_update_config --productType <value> --symbol <value>
+```
+
+### `futures_modify_plan`
+
+Modify an existing TP/SL or trigger order. mode='tpsl' modifies a position TP/SL (triggerPrice, triggerType, executePrice, size, rangeRate). mode='plan' modifies a trigger order (newSize, newPrice, newCallbackRatio, triggerPrice). Provide orderId or clientOid. [CAUTION] Affects live orders. Private endpoint. Rate limit: 10 req/s per UID.
+
+**Write operation:** Yes — requires confirmation
+
+**Parameters:**
+
+| Name | Type | Required | Description |
+|------|------|----------|-------------|
+| `mode` | string | Yes |  |
+| `productType` | string | Yes |  |
+| `symbol` | string | No |  |
+| `marginCoin` | string | No |  |
+| `orderId` | string | No | One of orderId or clientOid required. |
+| `clientOid` | string | No |  |
+| `triggerPrice` | string | No |  |
+| `triggerType` | string | No |  |
+| `executePrice` | string | No |  |
+| `size` | string | No | tpsl mode size. |
+| `rangeRate` | string | No | tpsl moving_plan callback rate. |
+| `newSize` | string | No | plan mode new size. |
+| `newPrice` | string | No | plan mode new limit price. |
+| `newCallbackRatio` | string | No | plan mode track_plan callback. |
+
+**Example:**
+```bash
+bgc futures futures_modify_plan --mode <value> --productType <value>
 ```
 
 ## Module: account
