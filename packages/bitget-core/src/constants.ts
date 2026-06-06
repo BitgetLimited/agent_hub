@@ -1,5 +1,5 @@
 export const SERVER_NAME = 'bitget-mcp-server';
-export const SERVER_VERSION = '1.0.6';
+export const SERVER_VERSION = '1.0.0';
 
 export const MODULES = [
   'spot',

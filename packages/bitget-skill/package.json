@@ -1,6 +1,6 @@
 {
   "name": "bitget-skill",
-  "version": "1.1.0",
+  "version": "1.0.0",
   "description": "Claude Code skill for Bitget API via bgc CLI",
   "type": "module",
   "license": "MIT",
