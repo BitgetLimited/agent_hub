@@ -24,7 +24,7 @@
 - **MCP Server** — for Claude Code, Cursor, Codex, and any MCP-compatible AI
 - **CLI (`bgc`) + Skill** — for shell-based AI agents (Claude Code skills, OpenClaw)
 
-Once configured, your AI can check prices, query balances, place and cancel orders, manage futures positions, set leverage, and transfer funds — all through natural language.
+Once configured, your AI can check prices, query balances, place and cancel orders, manage futures positions, attach take-profit/stop-loss and trigger (stop-market) orders, set leverage, and transfer funds — all through natural language.
 
 ---
 
@@ -197,7 +197,7 @@ The `technical-analysis` skill requires Python: `pip install pandas numpy`
 | Module | Tools | Loaded by default |
 |--------|:-----:|:-----------------:|
 | `spot` | 13 | ✅ |
-| `futures` | 15 | ✅ |
+| `futures` | 17 | ✅ |
 | `account` | 8 | ✅ |
 | `margin` | 7 | — |
 | `copytrading` | 5 | — |
@@ -206,8 +206,10 @@ The `technical-analysis` skill requires Python: `pip install pandas numpy`
 | `p2p` | 2 | — |
 | `broker` | 3 | — |
 
-Default: `spot + futures + account` = 36 tools (fits within Cursor's 40-tool limit).
-Load everything: `--modules all` (59 tools)
+Default: `spot + futures + account` = 38 tools (fits within Cursor's 40-tool limit — the MCP server advertises 39 including the synthetic `system_get_capabilities` tool).
+Load everything: `--modules all` (61 tools)
+
+The `futures` module includes TP/SL and trigger-order management: `futures_place_tpsl` (set TP/SL on a position or place a stop-market trigger order), `futures_modify_plan` (modify them), plus a `planType` parameter on `futures_get_orders` / `futures_cancel_orders` to list and cancel them. Attach TP/SL when opening by adding `presetStopSurplusPrice` / `presetStopLossPrice` to a `futures_place_order` order object.
 
 ---
 
@@ -231,6 +233,20 @@ pnpm -r test
 ```
 
 **Documentation:** [`docs/project.md`](docs/project.md) (product), [`docs/architecture.md`](docs/architecture.md) (technical), [`docs/conventions.md`](docs/conventions.md) (coding conventions), [`docs/ai-context.md`](docs/ai-context.md) (AI agent context).
+
+### Releasing
+
+Releases are automated by [`.github/workflows/release.yml`](.github/workflows/release.yml). Pushing a semver tag builds, type-checks, and tests every package, publishes them to npm in dependency order via [`scripts/publish.mjs`](scripts/publish.mjs), and creates a GitHub Release with generated notes.
+
+```bash
+# Bump the version field in each package's package.json first, then:
+git tag 1.0.0
+git push origin 1.0.0
+```
+
+One-time setup: add an npm **Automation** access token as the `NPM_TOKEN` repository secret (Settings → Secrets and variables → Actions), and allow Actions to write contents (Settings → Actions → Workflow permissions → Read and write).
+
+To preview without publishing, run `node scripts/publish.mjs` (dry-run); add `--publish` to release manually.
 
 ---
 
