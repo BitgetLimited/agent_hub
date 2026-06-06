@@ -250,3 +250,38 @@ test("futures_modify_plan requires orderId or clientOid", async () => {
     ),
   ).rejects.toThrow();
 });
+
+test("futures_cancel_plan cancels a plan order by orderId", async () => {
+  const placeResult = await getTool("futures_place_tpsl").handler(
+    {
+      mode: "plan",
+      symbol: "BTCUSDT",
+      productType: "USDT-FUTURES",
+      marginCoin: "USDT",
+      planType: "normal_plan",
+      triggerPrice: "55000",
+      side: "buy",
+      tradeSide: "open",
+      orderType: "market",
+      size: "0.001",
+    },
+    { config, client },
+  ) as Record<string, unknown>;
+  const orderId = (placeResult["data"] as Record<string, unknown>)["orderId"] as string;
+
+  await getTool("futures_cancel_plan").handler(
+    { productType: "USDT-FUTURES", symbol: "BTCUSDT", planType: "normal_plan", orderId },
+    { config, client },
+  );
+
+  expect(server.getState().planOrders.get(orderId)?.status).toBe("cancelled");
+});
+
+test("futures_cancel_plan requires one of orderId/orderIds/cancelAll", async () => {
+  await expect(
+    getTool("futures_cancel_plan").handler(
+      { productType: "USDT-FUTURES", symbol: "BTCUSDT", planType: "normal_plan" },
+      { config, client },
+    ),
+  ).rejects.toThrow();
+});

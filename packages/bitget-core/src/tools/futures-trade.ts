@@ -497,6 +497,54 @@ export function registerFuturesTradeTools(): ToolSpec[] {
       return normalize(response);
     }
   }, {
+    name: 'futures_cancel_plan',
+    module: 'futures',
+    description:
+      'Cancel futures TP/SL or trigger orders by orderId, batch ids, or cancel-all by planType. planType: normal_plan, track_plan, or profit_loss. Provide one of orderId, orderIds, or cancelAll. Private endpoint. Rate limit: 10 req/s per UID.',
+    isWrite: true,
+    inputSchema: {
+      type: 'object',
+      properties: {
+        productType: { type: 'string', enum: [...PRODUCT_TYPES] },
+        symbol: { type: 'string' },
+        marginCoin: { type: 'string' },
+        planType: { type: 'string', enum: ['normal_plan', 'track_plan', 'profit_loss'] },
+        orderId: { type: 'string' },
+        orderIds: { type: 'array', items: { type: 'string' } },
+        cancelAll: { type: 'boolean' }
+      },
+      required: ['productType', 'planType']
+    },
+    handler: async (rawArgs, context) => {
+      const args = asRecord(rawArgs);
+      const productType = requireString(args, 'productType');
+      assertEnum(productType, 'productType', PRODUCT_TYPES);
+      const planType = requireString(args, 'planType');
+      assertEnum(planType, 'planType', ['normal_plan', 'track_plan', 'profit_loss']);
+      const symbol = readString(args, 'symbol');
+      const marginCoin = readString(args, 'marginCoin');
+      const orderId = readString(args, 'orderId');
+      const orderIds = readStringArray(args, 'orderIds');
+      ensureOneOf(args, ['orderId', 'orderIds', 'cancelAll'], 'Provide one of "orderId", "orderIds", or "cancelAll=true".');
+      if (orderIds && orderIds.length > 50) {
+        throw new ValidationError('orderIds supports at most 50 items.');
+      }
+      const orderIdList = orderId
+        ? [{ orderId }]
+        : orderIds
+          ? orderIds.map((id) => ({ orderId: id }))
+          : undefined;
+      const body = compactObject({
+        productType,
+        symbol,
+        marginCoin,
+        planType,
+        orderIdList
+      });
+      const response = await context.client.privatePost(FUTURES_ENDPOINTS.order.cancelPlanOrder, body, privateRateLimit('futures_cancel_plan', 10));
+      return normalize(response);
+    }
+  }, {
     name: 'futures_modify_plan',
     module: 'futures',
     description:
