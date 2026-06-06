@@ -40,6 +40,19 @@ export interface FuturesOrder {
   uTime: string;
 }
 
+export interface PlanOrder {
+  orderId: string;
+  clientOid?: string;
+  symbol: string;
+  productType: string;
+  planType: string;
+  triggerPrice?: string;
+  size?: string;
+  status: 'live' | 'executed' | 'cancelled';
+  cTime: string;
+  uTime: string;
+}
+
 export interface Position {
   symbol: string;
   productType: string;
@@ -168,6 +181,7 @@ export interface MockState {
   spotOrders: Map<string, SpotOrder>;
   spotPlanOrders: Map<string, SpotPlanOrder>;
   futuresOrders: Map<string, FuturesOrder>;
+  planOrders: Map<string, PlanOrder>;
   positions: Map<string, Position>;
   leverage: Map<string, number>;
   balances: Map<string, Balance>;
@@ -200,6 +214,7 @@ export function createEmptyState(): MockState {
     spotOrders: new Map(),
     spotPlanOrders: new Map(),
     futuresOrders: new Map(),
+    planOrders: new Map(),
     positions: new Map(),
     leverage: new Map(),
     balances: new Map(),
