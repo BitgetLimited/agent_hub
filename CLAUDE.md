@@ -12,6 +12,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 `bitget-hub` is a standalone installer CLI (`npx bitget-hub`) that installs/upgrades/rolls back the published packages.
 
+AI-oriented docs live in `docs/`: `project.md` (product/domain), `architecture.md` (technical, Mermaid), `conventions.md` (coding conventions), `ai-context.md` (dense agent context). Update these via `.agent/construct.md` when the architecture changes.
+
 ## Commands
 
 Prerequisites: Node ≥ 18, pnpm ≥ 8.
@@ -50,7 +52,7 @@ Every Bitget capability is a `ToolSpec` (see `packages/bitget-core/src/tools/typ
 
 ```ts
 interface ToolSpec {
-  name: string;          // e.g. "spot_get_ticker"
+  name: string;          // e.g. 'spot_get_ticker'
   module: ModuleId;      // spot | futures | account | margin | copytrading | convert | earn | p2p | broker
   description: string;
   inputSchema: JsonSchema;
@@ -92,13 +94,13 @@ Tests (vitest) run against a local in-process mock of the Bitget REST API: `bitg
 
 ## Conventions
 
-- **ESM + NodeNext**: all relative imports use `.js` extensions even in `.ts` source (e.g. `import { x } from "./config.js"`). Required by `moduleResolution: NodeNext`.
+- **ESM + NodeNext**: all relative imports use `.js` extensions even in `.ts` source (e.g. `import { x } from './config.js'`). Required by `moduleResolution: NodeNext`.
 - **Strict TS** with `noUncheckedIndexedAccess` — array/record access is `T | undefined`; handle it.
 - Tool handlers validate args via `tools/helpers.ts` (`requireString`, `readNumber`, `readObjectArray`, `assertEnum`, `compactObject`, …) — string-encoded JSON for arrays/objects is accepted so the CLI and MCP paths behave identically.
 - Build tooling: `tsup` per package (config in each `tsup.config.ts`), shared compiler options in `tsconfig.base.json`.
 
 ## Code style
 
-Adhere to the style rules in `.agent/code-style/` — `COMMON.md` (TS/JS + Dart), `BACK-END-STYLE.md` (Bun/Hono/Drizzle), `FRONT-END-STYLE.md` (JSX). Read them before editing. Key `COMMON.md` rules: object/interface/type members and array items each on their own line; never destructure; import specifiers on a single line (never wrapped); semicolons everywhere; single quotes; no trailing commas; never `any`; `if` always braces; chained calls break from the second dot onward; file names lowercase-hyphen.
+Adhere to the style rules in `.agent/code-style/` — `COMMON.md` (TS/JS + Dart), `BACK-END-STYLE.md` (Bun/Hono/Drizzle), `FRONT-END-STYLE.md` (JSX). Read them before editing. Key `COMMON.md` rules: object/interface/type members and array items each on their own line; never destructure (use property/index access); import specifiers on a single line (never wrapped); semicolons everywhere; single quotes (keep double only when the string contains an apostrophe); no trailing commas; never `any`; `if` always braces; never break function-call args across lines (object/array-literal args may span); chained calls break from the second dot onward; file names lowercase-hyphen.
 
-**Conflict note:** existing `bitget-core` source predates this guide and uses double quotes, trailing commas, and multiline imports — the opposite of `COMMON.md`. New files follow `.agent/code-style`. When editing an existing file, match the surrounding file's formatting unless asked to reformat.
+The entire codebase was reformatted to this guide (branch `f/format-code`), so match the surrounding code — it already conforms. One carve-out kept by convention: tiny inline schema literals (`{ type: 'string', description: '...' }`) and short enum arrays (`['buy', 'sell']`) stay inline rather than exploded one-per-line.
