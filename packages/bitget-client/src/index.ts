@@ -1,4 +1,4 @@
-import { loadConfig, buildTools, BitgetRestClient, toToolErrorPayload, SERVER_VERSION } from "bitget-core";
+import { loadConfig, buildTools, BitgetRestClient, toToolErrorPayload, SERVER_VERSION } from 'bitget-core';
 
 function printHelp(): void {
   process.stdout.write(`
@@ -30,49 +30,53 @@ Demo Trading:
 async function main(): Promise<void> {
   const argv = process.argv.slice(2);
 
-  if (argv.includes("--help") || argv.length === 0) {
+  if (argv.includes('--help') || argv.length === 0) {
     printHelp();
     return;
   }
 
-  if (argv.includes("--version")) {
+  if (argv.includes('--version')) {
     process.stdout.write(`bgc (bitget-client) using bitget-core ${SERVER_VERSION}\n`);
     return;
   }
 
-  const positionals = argv.filter((a) => !a.startsWith("--"));
+  const positionals = argv.filter((a) => !a.startsWith('--'));
   const module = positionals[0];
   const toolName = positionals[1];
 
   if (!module || !toolName) {
-    process.stderr.write("Error: provide <module> <tool>\n");
+    process.stderr.write('Error: provide <module> <tool>\n');
     process.exitCode = 1;
     return;
   }
 
-  const pretty = argv.includes("--pretty");
-  const readOnly = argv.includes("--read-only");
-  const paperTrading = argv.includes("--paper-trading");
+  const pretty = argv.includes('--pretty');
+  const readOnly = argv.includes('--read-only');
+  const paperTrading = argv.includes('--paper-trading');
 
   // Parse --key value pairs as tool arguments
   const toolArgs: Record<string, unknown> = {};
   const allArgs = argv;
   for (let i = 0; i < allArgs.length; i++) {
     const arg = allArgs[i];
-    if (!arg || !arg.startsWith("--")) continue;
+    if (!arg || !arg.startsWith('--')) {
+      continue;
+    }
     const key = arg.slice(2);
-    if (key === "pretty" || key === "read-only" || key === "paper-trading" || key === "help" || key === "version") continue;
+    if (key === 'pretty' || key === 'read-only' || key === 'paper-trading' || key === 'help' || key === 'version') {
+      continue;
+    }
     const next = allArgs[i + 1];
-    if (next !== undefined && !next.startsWith("--")) {
+    if (next !== undefined && !next.startsWith('--')) {
       // Coerce CLI string values to their natural types so boolean
       // validators in helpers.ts receive the correct types.
       // Numbers and strings are left as strings — readNumber() handles coercion,
       // which avoids misidentifying numeric orderIds as number type.
-      if (next === "true") {
+      if (next === 'true') {
         toolArgs[key] = true;
-      } else if (next === "false") {
+      } else if (next === 'false') {
         toolArgs[key] = false;
-      } else if (next.startsWith("[") || next.startsWith("{")) {
+      } else if (next.startsWith('[') || next.startsWith('{')) {
         // Parse JSON arrays/objects (e.g. --orders '[{...}]')
         // Core helpers.ts also handles string-encoded JSON, but pre-parsing here
         // gives a clearer error message at the CLI boundary.
@@ -106,15 +110,15 @@ async function main(): Promise<void> {
   try {
     const result = await tool.handler(toolArgs, { config, client });
     const output = pretty ? JSON.stringify(result, null, 2) : JSON.stringify(result);
-    process.stdout.write(output + "\n");
+    process.stdout.write(output + '\n');
   } catch (err: unknown) {
     const payload = toToolErrorPayload(err);
-    process.stderr.write(JSON.stringify(payload, null, 2) + "\n");
+    process.stderr.write(JSON.stringify(payload, null, 2) + '\n');
     process.exitCode = 1;
   }
 }
 
 main().catch((err) => {
-  process.stderr.write(String(err) + "\n");
+  process.stderr.write(String(err) + '\n');
   process.exitCode = 1;
 });

@@ -1,4 +1,4 @@
-import { RateLimitError } from "./errors.js";
+import { RateLimitError } from './errors.js';
 
 type Bucket = {
   tokens: number;
@@ -41,19 +41,14 @@ export class RateLimiter {
     const waitMs = Math.ceil(secondsToWait * 1000);
 
     if (waitMs > this.maxWaitMs) {
-      throw new RateLimitError(
-        `Client-side rate limit reached for ${config.key}. Required wait ${waitMs}ms exceeds allowed max ${this.maxWaitMs}ms.`,
-        "Reduce tool call frequency or retry later.",
-      );
+      throw new RateLimitError(`Client-side rate limit reached for ${config.key}. Required wait ${waitMs}ms exceeds allowed max ${this.maxWaitMs}ms.`, 'Reduce tool call frequency or retry later.');
     }
 
     await sleep(waitMs);
     this.refill(bucket);
 
     if (bucket.tokens < amount) {
-      throw new RateLimitError(
-        `Rate limiter failed to acquire enough tokens for ${config.key}.`,
-      );
+      throw new RateLimitError(`Rate limiter failed to acquire enough tokens for ${config.key}.`);
     }
 
     bucket.tokens -= amount;
@@ -78,7 +73,7 @@ export class RateLimiter {
       tokens: config.capacity,
       lastRefillMs: now,
       capacity: config.capacity,
-      refillPerSecond: config.refillPerSecond,
+      refillPerSecond: config.refillPerSecond
     };
     this.buckets.set(config.key, created);
     return created;

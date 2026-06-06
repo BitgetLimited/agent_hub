@@ -1,11 +1,11 @@
 export type ErrorType =
-  | "ConfigError"
-  | "AuthenticationError"
-  | "RateLimitError"
-  | "ValidationError"
-  | "BitgetApiError"
-  | "NetworkError"
-  | "InternalError";
+  | 'ConfigError'
+  | 'AuthenticationError'
+  | 'RateLimitError'
+  | 'ValidationError'
+  | 'BitgetApiError'
+  | 'NetworkError'
+  | 'InternalError';
 
 export interface ToolErrorPayload {
   ok: false;
@@ -33,7 +33,7 @@ export class BitgetMcpError extends Error {
       suggestion?: string;
       endpoint?: string;
       cause?: unknown;
-    },
+    }
   ) {
     super(message, options?.cause ? { cause: options.cause } : undefined);
     this.name = type;
@@ -46,25 +46,35 @@ export class BitgetMcpError extends Error {
 
 export class ConfigError extends BitgetMcpError {
   public constructor(message: string, suggestion?: string) {
-    super("ConfigError", message, { suggestion });
+    super('ConfigError', message, {
+      suggestion
+    });
   }
 }
 
 export class ValidationError extends BitgetMcpError {
   public constructor(message: string, suggestion?: string) {
-    super("ValidationError", message, { suggestion });
+    super('ValidationError', message, {
+      suggestion
+    });
   }
 }
 
 export class RateLimitError extends BitgetMcpError {
   public constructor(message: string, suggestion?: string, endpoint?: string) {
-    super("RateLimitError", message, { suggestion, endpoint });
+    super('RateLimitError', message, {
+      suggestion,
+      endpoint
+    });
   }
 }
 
 export class AuthenticationError extends BitgetMcpError {
   public constructor(message: string, suggestion?: string, endpoint?: string) {
-    super("AuthenticationError", message, { suggestion, endpoint });
+    super('AuthenticationError', message, {
+      suggestion,
+      endpoint
+    });
   }
 }
 
@@ -76,26 +86,25 @@ export class BitgetApiError extends BitgetMcpError {
       suggestion?: string;
       endpoint?: string;
       cause?: unknown;
-    },
+    }
   ) {
-    super("BitgetApiError", message, options);
+    super('BitgetApiError', message, options);
   }
 }
 
 export class NetworkError extends BitgetMcpError {
   public constructor(message: string, endpoint?: string, cause?: unknown) {
-    super("NetworkError", message, {
+    super('NetworkError', message, {
       endpoint,
       cause,
-      suggestion:
-        "Please check network connectivity and retry the request in a few seconds.",
+      suggestion: 'Please check network connectivity and retry the request in a few seconds.'
     });
   }
 }
 
 export function toToolErrorPayload(
   error: unknown,
-  fallbackEndpoint?: string,
+  fallbackEndpoint?: string
 ): ToolErrorPayload {
   if (error instanceof BitgetMcpError) {
     return {
@@ -105,9 +114,9 @@ export function toToolErrorPayload(
         code: error.code,
         message: error.message,
         suggestion: error.suggestion,
-        endpoint: error.endpoint ?? fallbackEndpoint,
+        endpoint: error.endpoint ?? fallbackEndpoint
       },
-      timestamp: new Date().toISOString(),
+      timestamp: new Date().toISOString()
     };
   }
 
@@ -115,12 +124,11 @@ export function toToolErrorPayload(
   return {
     ok: false,
     error: {
-      type: "InternalError",
+      type: 'InternalError',
       message,
-      suggestion:
-        "Unexpected server error. Check tool arguments and retry. If it persists, inspect server logs.",
-      endpoint: fallbackEndpoint,
+      suggestion: 'Unexpected server error. Check tool arguments and retry. If it persists, inspect server logs.',
+      endpoint: fallbackEndpoint
     },
-    timestamp: new Date().toISOString(),
+    timestamp: new Date().toISOString()
   };
 }

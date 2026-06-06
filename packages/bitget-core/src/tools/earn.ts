@@ -1,34 +1,22 @@
-import type { ToolContext, ToolSpec } from "./types.js";
-import {
-  asRecord,
-  assertEnum,
-  compactObject,
-  readString,
-  requireString,
-} from "./helpers.js";
-import { privateRateLimit } from "./common.js";
-import type { RequestResult } from "../client/types.js";
-import { BitgetApiError } from "../utils/errors.js";
+import type { ToolContext, ToolSpec } from './types.js';
+import { asRecord, assertEnum, compactObject, readString, requireString } from './helpers.js';
+import { privateRateLimit } from './common.js';
+import { EARN_ENDPOINTS } from '../api/index.js';
+import type { EarnOperation } from '../api/index.js';
+import type { RequestResult } from '../client/types.js';
+import { BitgetApiError } from '../utils/errors.js';
 
-type EarnOperation = "products" | "holdings" | "subscribe" | "redeem";
-export type EarnCapabilityStatus = "unknown" | "supported" | "unsupported";
-
-const EARN_ENDPOINTS: Record<EarnOperation, string[]> = {
-  products: ["/api/v2/earn/savings/product"],
-  holdings: ["/api/v2/earn/savings/assets"],
-  subscribe: ["/api/v2/earn/savings/subscribe"],
-  redeem: ["/api/v2/earn/savings/redeem"],
-};
+export type EarnCapabilityStatus = 'unknown' | 'supported' | 'unsupported';
 
 const earnEndpointCache: Partial<Record<EarnOperation, string>> = {};
-let earnCapability: EarnCapabilityStatus = "unknown";
+let earnCapability: EarnCapabilityStatus = 'unknown';
 
 export function getEarnCapabilityStatus(): EarnCapabilityStatus {
   return earnCapability;
 }
 
 export async function warmupEarnCapability(context: ToolContext): Promise<EarnCapabilityStatus> {
-  if (earnCapability !== "unknown") {
+  if (earnCapability !== 'unknown') {
     return earnCapability;
   }
   try {
@@ -40,18 +28,15 @@ export async function warmupEarnCapability(context: ToolContext): Promise<EarnCa
 }
 
 function is404Error(error: unknown): boolean {
-  return error instanceof BitgetApiError && error.code === "404";
+  return error instanceof BitgetApiError && error.code === '404';
 }
 
 function earnUnavailableError(operation: EarnOperation): BitgetApiError {
-  return new BitgetApiError(
-    `Earn API operation "${operation}" is unavailable in current account/region or API environment.`,
-    {
-      code: "EARN_UNAVAILABLE",
+  return new BitgetApiError(`Earn API operation "${operation}" is unavailable in current account/region or API environment.`, {
+      code: 'EARN_UNAVAILABLE',
       suggestion:
-        "Current Bitget environment does not expose earn endpoints for this account. Consider disabling earn module for this deployment.",
-    },
-  );
+        'Current Bitget environment does not expose earn endpoints for this account. Consider disabling earn module for this deployment.'
+    });
 }
 
 function endpointCandidates(operation: EarnOperation): string[] {
@@ -66,15 +51,11 @@ async function callEarnGet(
   context: ToolContext,
   operation: EarnOperation,
   query: Record<string, unknown>,
-  rateLimitKey: string,
+  rateLimitKey: string
 ): Promise<RequestResult> {
   for (const path of endpointCandidates(operation)) {
     try {
-      const response = await context.client.privateGet(
-        path,
-        query,
-        privateRateLimit(rateLimitKey, 10),
-      );
+      const response = await context.client.privateGet(path, query, privateRateLimit(rateLimitKey, 10));
       earnEndpointCache[operation] = path;
       return response;
     } catch (error) {
@@ -91,15 +72,11 @@ async function callEarnPost(
   context: ToolContext,
   operation: EarnOperation,
   body: Record<string, unknown>,
-  rateLimitKey: string,
+  rateLimitKey: string
 ): Promise<RequestResult> {
   for (const path of endpointCandidates(operation)) {
     try {
-      const response = await context.client.privatePost(
-        path,
-        body,
-        privateRateLimit(rateLimitKey, 5),
-      );
+      const response = await context.client.privatePost(path, body, privateRateLimit(rateLimitKey, 5));
       earnEndpointCache[operation] = path;
       return response;
     } catch (error) {
@@ -113,25 +90,20 @@ async function callEarnPost(
 }
 
 async function ensureEarnSupported(context: ToolContext): Promise<void> {
-  if (earnCapability === "supported") {
+  if (earnCapability === 'supported') {
     return;
   }
-  if (earnCapability === "unsupported") {
-    throw earnUnavailableError("products");
+  if (earnCapability === 'unsupported') {
+    throw earnUnavailableError('products');
   }
   try {
-    await callEarnGet(
-      context,
-      "products",
-      compactObject({
-        coin: "USDT",
-      }),
-      "earn_probe",
-    );
-    earnCapability = "supported";
+    await callEarnGet(context, 'products', compactObject({
+        coin: 'USDT'
+      }), 'earn_probe');
+    earnCapability = 'supported';
   } catch (error) {
-    if (error instanceof BitgetApiError && error.code === "EARN_UNAVAILABLE") {
-      earnCapability = "unsupported";
+    if (error instanceof BitgetApiError && error.code === 'EARN_UNAVAILABLE') {
+      earnCapability = 'unsupported';
     }
     throw error;
   }
@@ -145,105 +117,86 @@ function normalize(response: {
   return {
     endpoint: response.endpoint,
     requestTime: response.requestTime,
-    data: response.data,
+    data: response.data
   };
 }
 
 export function registerEarnTools(): ToolSpec[] {
-  return [
-    {
-      name: "earn_get_products",
-      module: "earn",
-      description:
-        "Query available earn products such as savings and staking. Private endpoint. Rate limit: 10 req/s per UID.",
-      isWrite: false,
-      inputSchema: {
-        type: "object",
-        properties: {
-          coin: { type: "string" },
-          filter: { type: "string" },
-        },
-      },
-      handler: async (rawArgs, context) => {
-        const args = asRecord(rawArgs);
-        await ensureEarnSupported(context);
-        const response = await callEarnGet(
-          context,
-          "products",
-          compactObject({
-            coin: readString(args, "coin"),
-            filter: readString(args, "filter"),
-          }),
-          "earn_get_products",
-        );
-        return normalize(response);
-      },
+  return [{
+    name: 'earn_get_products',
+    module: 'earn',
+    description:
+      'Query available earn products such as savings and staking. Private endpoint. Rate limit: 10 req/s per UID.',
+    isWrite: false,
+    inputSchema: {
+      type: 'object',
+      properties: {
+        coin: { type: 'string' },
+        filter: { type: 'string' }
+      }
     },
-    {
-      name: "earn_subscribe_redeem",
-      module: "earn",
-      description:
-        "Subscribe or redeem earn products. [CAUTION] Locks/releases funds. Private endpoint. Rate limit: 5 req/s per UID.",
-      isWrite: true,
-      inputSchema: {
-        type: "object",
-        properties: {
-          action: { type: "string", enum: ["subscribe", "redeem"] },
-          productId: { type: "string" },
-          amount: { type: "string" },
-          periodType: { type: "string" },
-          orderId: { type: "string" },
-        },
-        required: ["action", "productId", "amount", "periodType"],
+    handler: async (rawArgs, context) => {
+      const args = asRecord(rawArgs);
+      await ensureEarnSupported(context);
+      const response = await callEarnGet(context, 'products', compactObject({
+          coin: readString(args, 'coin'),
+          filter: readString(args, 'filter')
+        }), 'earn_get_products');
+      return normalize(response);
+    }
+  }, {
+    name: 'earn_subscribe_redeem',
+    module: 'earn',
+    description:
+      'Subscribe or redeem earn products. [CAUTION] Locks/releases funds. Private endpoint. Rate limit: 5 req/s per UID.',
+    isWrite: true,
+    inputSchema: {
+      type: 'object',
+      properties: {
+        action: { type: 'string', enum: ['subscribe', 'redeem'] },
+        productId: { type: 'string' },
+        amount: { type: 'string' },
+        periodType: { type: 'string' },
+        orderId: { type: 'string' }
       },
-      handler: async (rawArgs, context) => {
-        const args = asRecord(rawArgs);
-        const action = requireString(args, "action");
-        assertEnum(action, "action", ["subscribe", "redeem"]);
-        await ensureEarnSupported(context);
-        const operation = action === "subscribe" ? "subscribe" : "redeem";
-        const response = await callEarnPost(
-          context,
-          operation,
-          compactObject({
-            productId: requireString(args, "productId"),
-            amount: requireString(args, "amount"),
-            periodType: requireString(args, "periodType"),
-            orderId: readString(args, "orderId"),
-          }),
-          "earn_subscribe_redeem",
-        );
-        return normalize(response);
-      },
+      required: ['action', 'productId', 'amount', 'periodType']
     },
-    {
-      name: "earn_get_holdings",
-      module: "earn",
-      description:
-        "Get current earn holdings and earnings records. Private endpoint. Rate limit: 10 req/s per UID.",
-      isWrite: false,
-      inputSchema: {
-        type: "object",
-        properties: {
-          coin: { type: "string" },
-          periodType: { type: "string" },
-        },
-        required: ["periodType"],
+    handler: async (rawArgs, context) => {
+      const args = asRecord(rawArgs);
+      const action = requireString(args, 'action');
+      assertEnum(action, 'action', ['subscribe', 'redeem']);
+      await ensureEarnSupported(context);
+      const operation = action === 'subscribe' ? 'subscribe' : 'redeem';
+      const response = await callEarnPost(context, operation, compactObject({
+          productId: requireString(args, 'productId'),
+          amount: requireString(args, 'amount'),
+          periodType: requireString(args, 'periodType'),
+          orderId: readString(args, 'orderId')
+        }), 'earn_subscribe_redeem');
+      return normalize(response);
+    }
+  }, {
+    name: 'earn_get_holdings',
+    module: 'earn',
+    description:
+      'Get current earn holdings and earnings records. Private endpoint. Rate limit: 10 req/s per UID.',
+    isWrite: false,
+    inputSchema: {
+      type: 'object',
+      properties: {
+        coin: { type: 'string' },
+        periodType: { type: 'string' }
       },
-      handler: async (rawArgs, context) => {
-        const args = asRecord(rawArgs);
-        await ensureEarnSupported(context);
-        const response = await callEarnGet(
-          context,
-          "holdings",
-          compactObject({
-            coin: readString(args, "coin"),
-            periodType: requireString(args, "periodType"),
-          }),
-          "earn_get_holdings",
-        );
-        return normalize(response);
-      },
+      required: ['periodType']
     },
-  ];
+    handler: async (rawArgs, context) => {
+      const args = asRecord(rawArgs);
+      await ensureEarnSupported(context);
+      const response = await callEarnGet(context, 'holdings', compactObject({
+          coin: readString(args, 'coin'),
+          periodType: requireString(args, 'periodType')
+        }), 'earn_get_holdings');
+      return normalize(response);
+    }
+  }];
 }

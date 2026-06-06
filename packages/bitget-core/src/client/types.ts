@@ -1,7 +1,7 @@
-import type { RateLimitConfig } from "../utils/rate-limiter.js";
+import type { RateLimitConfig } from '../utils/rate-limiter.js';
 
-export type HttpMethod = "GET" | "POST";
-export type EndpointAuth = "public" | "private";
+export type HttpMethod = 'GET' | 'POST';
+export type EndpointAuth = 'public' | 'private';
 
 export type QueryValue = unknown;
 export type QueryParams = Record<string, QueryValue>;

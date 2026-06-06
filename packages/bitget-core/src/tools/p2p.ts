@@ -1,12 +1,7 @@
-import type { ToolSpec } from "./types.js";
-import {
-  asRecord,
-  assertEnum,
-  compactObject,
-  readString,
-  requireString,
-} from "./helpers.js";
-import { privateRateLimit } from "./common.js";
+import type { ToolSpec } from './types.js';
+import { asRecord, assertEnum, compactObject, readString, requireString } from './helpers.js';
+import { privateRateLimit } from './common.js';
+import { P2P_ENDPOINTS } from '../api/index.js';
 
 function normalize(response: {
   endpoint: string;
@@ -16,82 +11,71 @@ function normalize(response: {
   return {
     endpoint: response.endpoint,
     requestTime: response.requestTime,
-    data: response.data,
+    data: response.data
   };
 }
 
 export function registerP2pTools(): ToolSpec[] {
-  return [
-    {
-      name: "p2p_get_merchants",
-      module: "p2p",
-      description:
-        "Get P2P merchant list or specific merchant details. Private endpoint. Rate limit: 10 req/s per UID.",
-      isWrite: false,
-      inputSchema: {
-        type: "object",
-        properties: {
-          merchantId: { type: "string" },
-        },
-      },
-      handler: async (rawArgs, context) => {
-        const args = asRecord(rawArgs);
-        const merchantId = readString(args, "merchantId");
-        const path = merchantId
-          ? "/api/v2/p2p/merchantInfo"
-          : "/api/v2/p2p/merchantList";
-        const response = await context.client.privateGet(
-          path,
-          compactObject({ merchantId }),
-          privateRateLimit("p2p_get_merchants", 10),
-        );
-        return normalize(response);
-      },
+  return [{
+    name: 'p2p_get_merchants',
+    module: 'p2p',
+    description:
+      'Get P2P merchant list or specific merchant details. Private endpoint. Rate limit: 10 req/s per UID.',
+    isWrite: false,
+    inputSchema: {
+      type: 'object',
+      properties: {
+        merchantId: { type: 'string' }
+      }
     },
-    {
-      name: "p2p_get_orders",
-      module: "p2p",
-      description:
-        "Get P2P order list or advertisement list. Private endpoint. Rate limit: 10 req/s per UID.",
-      isWrite: false,
-      inputSchema: {
-        type: "object",
-        properties: {
-          type: {
-            type: "string",
-            enum: ["orders", "advertisements"],
-            description: "orders(default) or advertisements.",
-          },
-          status: { type: "string" },
-          startTime: { type: "string" },
-          endTime: { type: "string" },
-          side: { type: "string", description: "Required for advertisements: buy or sell." },
-          coin: { type: "string", description: "Required for advertisements: coin to trade." },
-          fiat: { type: "string", description: "Required for advertisements: fiat currency." },
+    handler: async (rawArgs, context) => {
+      const args = asRecord(rawArgs);
+      const merchantId = readString(args, 'merchantId');
+      const path = merchantId
+        ? P2P_ENDPOINTS.merchantInfo
+        : P2P_ENDPOINTS.merchantList;
+      const response = await context.client.privateGet(path, compactObject({ merchantId }), privateRateLimit('p2p_get_merchants', 10));
+      return normalize(response);
+    }
+  }, {
+    name: 'p2p_get_orders',
+    module: 'p2p',
+    description:
+      'Get P2P order list or advertisement list. Private endpoint. Rate limit: 10 req/s per UID.',
+    isWrite: false,
+    inputSchema: {
+      type: 'object',
+      properties: {
+        type: {
+          type: 'string',
+          enum: ['orders', 'advertisements'],
+          description: 'orders(default) or advertisements.'
         },
-      },
-      handler: async (rawArgs, context) => {
-        const args = asRecord(rawArgs);
-        const type = readString(args, "type") ?? "orders";
-        assertEnum(type, "type", ["orders", "advertisements"]);
-        const path =
-          type === "advertisements"
-            ? "/api/v2/p2p/advList"
-            : "/api/v2/p2p/orderList";
-        const response = await context.client.privateGet(
-          path,
-          compactObject({
-            status: readString(args, "status"),
-            startTime: readString(args, "startTime"),
-            endTime: readString(args, "endTime"),
-            side: readString(args, "side"),
-            coin: readString(args, "coin"),
-            fiat: readString(args, "fiat"),
-          }),
-          privateRateLimit("p2p_get_orders", 10),
-        );
-        return normalize(response);
-      },
+        status: { type: 'string' },
+        startTime: { type: 'string' },
+        endTime: { type: 'string' },
+        side: { type: 'string', description: 'Required for advertisements: buy or sell.' },
+        coin: { type: 'string', description: 'Required for advertisements: coin to trade.' },
+        fiat: { type: 'string', description: 'Required for advertisements: fiat currency.' }
+      }
     },
-  ];
+    handler: async (rawArgs, context) => {
+      const args = asRecord(rawArgs);
+      const type = readString(args, 'type') ?? 'orders';
+      assertEnum(type, 'type', ['orders', 'advertisements']);
+      const path =
+        type === 'advertisements'
+          ? P2P_ENDPOINTS.advList
+          : P2P_ENDPOINTS.orderList;
+      const response = await context.client.privateGet(path, compactObject({
+          status: readString(args, 'status'),
+          startTime: readString(args, 'startTime'),
+          endTime: readString(args, 'endTime'),
+          side: readString(args, 'side'),
+          coin: readString(args, 'coin'),
+          fiat: readString(args, 'fiat')
+        }), privateRateLimit('p2p_get_orders', 10));
+      return normalize(response);
+    }
+  }];
 }

@@ -1,5 +1,6 @@
 {
-  "name": "agent-hub",
+  "name": "@nelie-taylor/agent-hub",
+  "version": "1.0.0",
   "private": true,
   "scripts": {
     "build": "pnpm -r build",
@@ -9,8 +10,5 @@
   },
   "engines": {
     "node": ">=18"
-  },
-  "devDependencies": {
-    "bitget-api-node-sdk": "^2.1.4"
   }
 }
