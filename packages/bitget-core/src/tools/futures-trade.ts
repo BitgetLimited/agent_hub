@@ -154,7 +154,7 @@ export function registerFuturesTradeTools(): ToolSpec[] {
     name: 'futures_cancel_orders',
     module: 'futures',
     description:
-      'Cancel futures orders by order id, batch ids, or cancel-all mode. Private endpoint. Rate limit: 10 req/s per UID.',
+      'Cancel futures orders by order id, batch ids, or cancel-all mode. Pass planType (normal_plan, track_plan, or profit_loss) to cancel TP/SL or trigger (plan) orders instead of regular orders. Private endpoint. Rate limit: 10 req/s per UID.',
     isWrite: true,
     inputSchema: {
       type: 'object',
@@ -164,7 +164,8 @@ export function registerFuturesTradeTools(): ToolSpec[] {
         orderId: { type: 'string' },
         orderIds: { type: 'array', items: { type: 'string' } },
         cancelAll: { type: 'boolean' },
-        marginCoin: { type: 'string' }
+        marginCoin: { type: 'string' },
+        planType: { type: 'string', enum: ['normal_plan', 'track_plan', 'profit_loss'], description: 'Set to cancel TP/SL or trigger orders via the plan-order endpoint.' }
       },
       required: ['productType', 'symbol']
     },
@@ -174,12 +175,28 @@ export function registerFuturesTradeTools(): ToolSpec[] {
       const symbol = requireString(args, 'symbol');
       const orderId = readString(args, 'orderId');
       const orderIds = readStringArray(args, 'orderIds');
-      const cancelAll = readBoolean(args, 'cancelAll');
       const marginCoin = readString(args, 'marginCoin');
+      const planType = readString(args, 'planType');
       assertEnum(productType, 'productType', PRODUCT_TYPES);
+      assertEnum(planType, 'planType', ['normal_plan', 'track_plan', 'profit_loss']);
       ensureOneOf(args, ['orderId', 'orderIds', 'cancelAll'], 'Provide one of "orderId", "orderIds", or "cancelAll=true".');
       if (orderIds && orderIds.length > 50) {
         throw new ValidationError('orderIds supports at most 50 items.');
+      }
+      const orderIdList = orderId
+        ? [{ orderId }]
+        : orderIds
+          ? orderIds.map((id) => ({ orderId: id }))
+          : undefined;
+      if (planType) {
+        const response = await context.client.privatePost(FUTURES_ENDPOINTS.order.cancelPlanOrder, compactObject({
+            productType,
+            symbol,
+            marginCoin,
+            planType,
+            orderIdList
+          }), privateRateLimit('futures_cancel_orders', 10));
+        return normalize(response);
       }
       const cancelTarget = orderId
         ? {
@@ -189,22 +206,20 @@ export function registerFuturesTradeTools(): ToolSpec[] {
         : orderIds
           ? {
               path: FUTURES_ENDPOINTS.order.batchCancelOrders,
-              body: { productType, symbol, orderIdList: orderIds.map((id) => ({ orderId: id })) }
+              body: { productType, symbol, orderIdList }
             }
           : {
               path: FUTURES_ENDPOINTS.order.cancelAllOrders,
               body: compactObject({ productType, marginCoin })
             };
-      const path = cancelTarget.path;
-      const body = cancelTarget.body;
-      const response = await context.client.privatePost(path, body, privateRateLimit('futures_cancel_orders', 10));
+      const response = await context.client.privatePost(cancelTarget.path, cancelTarget.body, privateRateLimit('futures_cancel_orders', 10));
       return normalize(response);
     }
   }, {
     name: 'futures_get_orders',
     module: 'futures',
     description:
-      'Query futures orders by id, open status, or history. Private endpoint. Rate limit: 10 req/s per UID.',
+      'Query futures orders by id, open status, or history. Pass planType (normal_plan, track_plan, or profit_loss) to list TP/SL or trigger (plan) orders instead of regular orders. Private endpoint. Rate limit: 10 req/s per UID.',
     isWrite: false,
     inputSchema: {
       type: 'object',
@@ -213,6 +228,7 @@ export function registerFuturesTradeTools(): ToolSpec[] {
         orderId: { type: 'string' },
         symbol: { type: 'string' },
         status: { type: 'string', enum: ['open', 'history'] },
+        planType: { type: 'string', enum: ['normal_plan', 'track_plan', 'profit_loss'], description: 'Set to list TP/SL or trigger orders via the plan-order endpoint.' },
         startTime: { type: 'string' },
         endTime: { type: 'string' },
         limit: { type: 'number' }
@@ -225,16 +241,23 @@ export function registerFuturesTradeTools(): ToolSpec[] {
       const orderId = readString(args, 'orderId');
       const symbol = readString(args, 'symbol');
       const status = readString(args, 'status') ?? 'open';
+      const planType = readString(args, 'planType');
       assertEnum(productType, 'productType', PRODUCT_TYPES);
-      const path = orderId
-        ? FUTURES_ENDPOINTS.order.detail
-        : status === 'history'
-          ? FUTURES_ENDPOINTS.order.ordersHistory
-          : FUTURES_ENDPOINTS.order.ordersPending;
+      assertEnum(planType, 'planType', ['normal_plan', 'track_plan', 'profit_loss']);
+      const path = planType
+        ? status === 'history'
+          ? FUTURES_ENDPOINTS.order.ordersPlanHistory
+          : FUTURES_ENDPOINTS.order.ordersPlanPending
+        : orderId
+          ? FUTURES_ENDPOINTS.order.detail
+          : status === 'history'
+            ? FUTURES_ENDPOINTS.order.ordersHistory
+            : FUTURES_ENDPOINTS.order.ordersPending;
       const query = compactObject({
         productType,
         orderId,
         symbol,
+        planType,
         startTime: readString(args, 'startTime'),
         endTime: readString(args, 'endTime'),
         limit: readNumber(args, 'limit')
@@ -311,49 +334,6 @@ export function registerFuturesTradeTools(): ToolSpec[] {
           marginCoin:
             readString(args, 'marginCoin') ?? (symbol ? 'USDT' : undefined)
         }), privateRateLimit('futures_get_positions', 10));
-      return normalize(response);
-    }
-  }, {
-    name: 'futures_get_plan_orders',
-    module: 'futures',
-    description:
-      'Query futures TP/SL and trigger (plan) orders. planType: normal_plan and track_plan are trigger orders; profit_loss are position TP/SL plans. status open returns pending, history returns triggered/cancelled. Private endpoint. Rate limit: 10 req/s per UID.',
-    isWrite: false,
-    inputSchema: {
-      type: 'object',
-      properties: {
-        productType: { type: 'string', enum: [...PRODUCT_TYPES] },
-        planType: { type: 'string', enum: ['normal_plan', 'track_plan', 'profit_loss'] },
-        status: { type: 'string', enum: ['open', 'history'] },
-        symbol: { type: 'string' },
-        orderId: { type: 'string' },
-        startTime: { type: 'string' },
-        endTime: { type: 'string' },
-        limit: { type: 'number' }
-      },
-      required: ['productType', 'planType']
-    },
-    handler: async (rawArgs, context) => {
-      const args = asRecord(rawArgs);
-      const productType = requireString(args, 'productType');
-      const planType = requireString(args, 'planType');
-      const status = readString(args, 'status') ?? 'open';
-      assertEnum(productType, 'productType', PRODUCT_TYPES);
-      assertEnum(planType, 'planType', ['normal_plan', 'track_plan', 'profit_loss']);
-      assertEnum(status, 'status', ['open', 'history']);
-      const path = status === 'history'
-        ? FUTURES_ENDPOINTS.order.ordersPlanHistory
-        : FUTURES_ENDPOINTS.order.ordersPlanPending;
-      const query = compactObject({
-        productType,
-        planType,
-        symbol: readString(args, 'symbol'),
-        orderId: readString(args, 'orderId'),
-        startTime: readString(args, 'startTime'),
-        endTime: readString(args, 'endTime'),
-        limit: readNumber(args, 'limit')
-      });
-      const response = await context.client.privateGet(path, query, privateRateLimit('futures_get_plan_orders', 10));
       return normalize(response);
     }
   }, {
@@ -494,54 +474,6 @@ export function registerFuturesTradeTools(): ToolSpec[] {
                 autoMargin: requireString(args, 'value'),
                 holdSide: readString(args, 'holdSide')
               }), privateRateLimit('futures_update_config', 5));
-      return normalize(response);
-    }
-  }, {
-    name: 'futures_cancel_plan',
-    module: 'futures',
-    description:
-      'Cancel futures TP/SL or trigger orders by orderId, batch ids, or cancel-all by planType. planType: normal_plan, track_plan, or profit_loss. Provide one of orderId, orderIds, or cancelAll. Private endpoint. Rate limit: 10 req/s per UID.',
-    isWrite: true,
-    inputSchema: {
-      type: 'object',
-      properties: {
-        productType: { type: 'string', enum: [...PRODUCT_TYPES] },
-        symbol: { type: 'string' },
-        marginCoin: { type: 'string' },
-        planType: { type: 'string', enum: ['normal_plan', 'track_plan', 'profit_loss'] },
-        orderId: { type: 'string' },
-        orderIds: { type: 'array', items: { type: 'string' } },
-        cancelAll: { type: 'boolean' }
-      },
-      required: ['productType', 'planType']
-    },
-    handler: async (rawArgs, context) => {
-      const args = asRecord(rawArgs);
-      const productType = requireString(args, 'productType');
-      assertEnum(productType, 'productType', PRODUCT_TYPES);
-      const planType = requireString(args, 'planType');
-      assertEnum(planType, 'planType', ['normal_plan', 'track_plan', 'profit_loss']);
-      const symbol = readString(args, 'symbol');
-      const marginCoin = readString(args, 'marginCoin');
-      const orderId = readString(args, 'orderId');
-      const orderIds = readStringArray(args, 'orderIds');
-      ensureOneOf(args, ['orderId', 'orderIds', 'cancelAll'], 'Provide one of "orderId", "orderIds", or "cancelAll=true".');
-      if (orderIds && orderIds.length > 50) {
-        throw new ValidationError('orderIds supports at most 50 items.');
-      }
-      const orderIdList = orderId
-        ? [{ orderId }]
-        : orderIds
-          ? orderIds.map((id) => ({ orderId: id }))
-          : undefined;
-      const body = compactObject({
-        productType,
-        symbol,
-        marginCoin,
-        planType,
-        orderIdList
-      });
-      const response = await context.client.privatePost(FUTURES_ENDPOINTS.order.cancelPlanOrder, body, privateRateLimit('futures_cancel_plan', 10));
       return normalize(response);
     }
   }, {

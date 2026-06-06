@@ -125,7 +125,7 @@ test("futures_set_leverage stores leverage in state", async () => {
   expect(lev).toBe(20);
 });
 
-test("futures_get_plan_orders returns live plan orders from state", async () => {
+test("futures_get_orders with planType returns live plan orders from state", async () => {
   const now = Date.now().toString();
   server.getState().planOrders.set("PLAN0000000001", {
     orderId: "PLAN0000000001",
@@ -139,7 +139,7 @@ test("futures_get_plan_orders returns live plan orders from state", async () => 
     uTime: now,
   });
 
-  const result = await getTool("futures_get_plan_orders").handler(
+  const result = await getTool("futures_get_orders").handler(
     { productType: "USDT-FUTURES", planType: "profit_loss", symbol: "BTCUSDT" },
     { config, client },
   ) as Record<string, unknown>;
@@ -149,7 +149,7 @@ test("futures_get_plan_orders returns live plan orders from state", async () => 
   expect(orders.some((o) => o["orderId"] === "PLAN0000000001")).toBe(true);
 });
 
-test("futures_place_tpsl mode=position -> get_plan_orders round-trip", async () => {
+test("futures_place_tpsl mode=position -> futures_get_orders planType round-trip", async () => {
   const placeResult = await getTool("futures_place_tpsl").handler(
     {
       mode: "position",
@@ -166,7 +166,7 @@ test("futures_place_tpsl mode=position -> get_plan_orders round-trip", async () 
   const orderId = (placeResult["data"] as Record<string, unknown>)["orderId"] as string;
   expect(orderId).toBeTruthy();
 
-  const ordersResult = await getTool("futures_get_plan_orders").handler(
+  const ordersResult = await getTool("futures_get_orders").handler(
     { productType: "USDT-FUTURES", planType: "profit_loss", symbol: "BTCUSDT" },
     { config, client },
   ) as Record<string, unknown>;
@@ -251,7 +251,7 @@ test("futures_modify_plan requires orderId or clientOid", async () => {
   ).rejects.toThrow();
 });
 
-test("futures_cancel_plan cancels a plan order by orderId", async () => {
+test("futures_cancel_orders with planType cancels a plan order by orderId", async () => {
   const placeResult = await getTool("futures_place_tpsl").handler(
     {
       mode: "plan",
@@ -269,7 +269,7 @@ test("futures_cancel_plan cancels a plan order by orderId", async () => {
   ) as Record<string, unknown>;
   const orderId = (placeResult["data"] as Record<string, unknown>)["orderId"] as string;
 
-  await getTool("futures_cancel_plan").handler(
+  await getTool("futures_cancel_orders").handler(
     { productType: "USDT-FUTURES", symbol: "BTCUSDT", planType: "normal_plan", orderId },
     { config, client },
   );
@@ -277,9 +277,9 @@ test("futures_cancel_plan cancels a plan order by orderId", async () => {
   expect(server.getState().planOrders.get(orderId)?.status).toBe("cancelled");
 });
 
-test("futures_cancel_plan requires one of orderId/orderIds/cancelAll", async () => {
+test("futures_cancel_orders with planType requires one of orderId/orderIds/cancelAll", async () => {
   await expect(
-    getTool("futures_cancel_plan").handler(
+    getTool("futures_cancel_orders").handler(
       { productType: "USDT-FUTURES", symbol: "BTCUSDT", planType: "normal_plan" },
       { config, client },
     ),
