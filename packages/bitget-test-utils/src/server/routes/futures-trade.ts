@@ -16,6 +16,8 @@ export function registerFuturesTradeRoutes(router: Router): void {
       tradeSide: (body['tradeSide'] as string) ?? 'open',
       orderType: (body['orderType'] as string) ?? 'limit',
       price: body['price'] as string | undefined,
+      presetStopSurplusPrice: body['presetStopSurplusPrice'] as string | undefined,
+      presetStopLossPrice: body['presetStopLossPrice'] as string | undefined,
       size: (body['size'] as string) ?? '0',
       status: 'live',
       cTime: now,

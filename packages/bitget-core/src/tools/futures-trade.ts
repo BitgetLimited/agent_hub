@@ -21,7 +21,7 @@ export function registerFuturesTradeTools(): ToolSpec[] {
     name: 'futures_place_order',
     module: 'futures',
     description:
-      'Place one or more futures orders with optional TP/SL. [CAUTION] Executes real trades. Private endpoint. Rate limit: 10 req/s per UID.',
+      "Place one or more futures orders. Attach TP/SL on open by adding presetStopSurplusPrice (take-profit trigger) and presetStopLossPrice (stop-loss trigger) to an order object; optionally presetStopSurplusExecutePrice / presetStopLossExecutePrice for the execution price. [CAUTION] Executes real trades. Private endpoint. Rate limit: 10 req/s per UID.",
     isWrite: true,
     inputSchema: {
       type: 'object',

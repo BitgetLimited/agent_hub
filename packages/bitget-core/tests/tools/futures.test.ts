@@ -285,3 +285,27 @@ test("futures_cancel_plan requires one of orderId/orderIds/cancelAll", async () 
     ),
   ).rejects.toThrow();
 });
+
+test("futures_place_order forwards presetStopSurplusPrice/presetStopLossPrice", async () => {
+  const placeResult = await getTool("futures_place_order").handler(
+    {
+      orders: [{
+        symbol: "BTCUSDT",
+        productType: "USDT-FUTURES",
+        marginCoin: "USDT",
+        side: "buy",
+        tradeSide: "open",
+        orderType: "market",
+        size: "0.001",
+        presetStopSurplusPrice: "60000",
+        presetStopLossPrice: "45000",
+      }],
+    },
+    { config, client },
+  ) as Record<string, unknown>;
+  const orderId = (placeResult["data"] as Record<string, unknown>)["orderId"] as string;
+
+  const stored = server.getState().futuresOrders.get(orderId);
+  expect(stored?.presetStopSurplusPrice).toBe("60000");
+  expect(stored?.presetStopLossPrice).toBe("45000");
+});

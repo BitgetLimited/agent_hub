@@ -34,6 +34,8 @@ export interface FuturesOrder {
   tradeSide: string;
   orderType: string;
   price?: string;
+  presetStopSurplusPrice?: string;
+  presetStopLossPrice?: string;
   size: string;
   status: 'live' | 'filled' | 'cancelled';
   cTime: string;
