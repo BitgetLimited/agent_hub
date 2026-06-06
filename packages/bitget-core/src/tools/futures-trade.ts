@@ -357,6 +357,63 @@ export function registerFuturesTradeTools(): ToolSpec[] {
       return normalize(response);
     }
   }, {
+    name: 'futures_place_tpsl',
+    module: 'futures',
+    description:
+      "Place a TP/SL or trigger order. mode='position' sets TP/SL on an existing position (planType: profit_plan, loss_plan, moving_plan, pos_profit, pos_loss; use size for partial profit_plan/loss_plan, omit for whole-position pos_profit/pos_loss; rangeRate is the moving_plan callback rate). mode='plan' places a trigger/stop-market order (planType: normal_plan, track_plan; needs side, tradeSide, orderType, size, triggerPrice). executePrice '0' or omitted = market. [CAUTION] Executes real trades. Private endpoint. Rate limit: 10 req/s per UID.",
+    isWrite: true,
+    inputSchema: {
+      type: 'object',
+      properties: {
+        mode: { type: 'string', enum: ['position', 'plan'], description: "'position' = TP/SL on a position; 'plan' = trigger order." },
+        symbol: { type: 'string', description: 'Trading pair, e.g. BTCUSDT.' },
+        productType: { type: 'string', enum: [...PRODUCT_TYPES] },
+        marginCoin: { type: 'string', description: 'Margin asset, e.g. USDT.' },
+        planType: { type: 'string', description: 'position: profit_plan|loss_plan|moving_plan|pos_profit|pos_loss. plan: normal_plan|track_plan.' },
+        triggerPrice: { type: 'string', description: 'Trigger price.' },
+        triggerType: { type: 'string', enum: ['fill_price', 'mark_price'] },
+        executePrice: { type: 'string', description: "Execution price; '0' or omitted = market." },
+        holdSide: { type: 'string', enum: ['long', 'short'], description: 'position mode: side of the position.' },
+        size: { type: 'string', description: 'Order or close size.' },
+        rangeRate: { type: 'string', description: 'position moving_plan callback rate.' },
+        marginMode: { type: 'string', enum: ['isolated', 'crossed'], description: 'plan mode; default crossed.' },
+        side: { type: 'string', enum: ['buy', 'sell'], description: 'plan mode.' },
+        tradeSide: { type: 'string', enum: ['open', 'close'], description: 'plan mode (hedge).' },
+        orderType: { type: 'string', enum: ['limit', 'market'], description: 'plan mode.' },
+        price: { type: 'string', description: 'plan mode limit price.' },
+        callbackRatio: { type: 'string', description: 'plan mode track_plan callback ratio.' },
+        reduceOnly: { type: 'string', enum: ['YES', 'NO'], description: 'plan mode.' },
+        presetStopSurplusPrice: { type: 'string', description: 'plan mode nested take-profit trigger price.' },
+        presetStopLossPrice: { type: 'string', description: 'plan mode nested stop-loss trigger price.' },
+        clientOid: { type: 'string' }
+      },
+      required: ['mode', 'symbol', 'productType', 'marginCoin', 'planType', 'triggerPrice']
+    },
+    handler: async (rawArgs, context) => {
+      const args = asRecord(rawArgs);
+      const mode = requireString(args, 'mode');
+      assertEnum(mode, 'mode', ['position', 'plan']);
+      const productType = requireString(args, 'productType');
+      assertEnum(productType, 'productType', PRODUCT_TYPES);
+      requireString(args, 'symbol');
+      requireString(args, 'marginCoin');
+      requireString(args, 'triggerPrice');
+      const planType = requireString(args, 'planType');
+      const positionPlanTypes = ['profit_plan', 'loss_plan', 'moving_plan', 'pos_profit', 'pos_loss'];
+      const planPlanTypes = ['normal_plan', 'track_plan'];
+      assertEnum(planType, 'planType', mode === 'position' ? positionPlanTypes : planPlanTypes);
+      const body = { ...args };
+      delete body.mode;
+      if (mode === 'plan' && readString(args, 'marginMode') === undefined) {
+        body.marginMode = 'crossed';
+      }
+      const path = mode === 'position'
+        ? FUTURES_ENDPOINTS.order.placeTpslOrder
+        : FUTURES_ENDPOINTS.order.placePlanOrder;
+      const response = await context.client.privatePost(path, compactObject(body), privateRateLimit('futures_place_tpsl', 10));
+      return normalize(response);
+    }
+  }, {
     name: 'futures_set_leverage',
     module: 'futures',
     description:

@@ -148,3 +148,66 @@ test("futures_get_plan_orders returns live plan orders from state", async () => 
   expect(Array.isArray(orders)).toBe(true);
   expect(orders.some((o) => o["orderId"] === "PLAN0000000001")).toBe(true);
 });
+
+test("futures_place_tpsl mode=position -> get_plan_orders round-trip", async () => {
+  const placeResult = await getTool("futures_place_tpsl").handler(
+    {
+      mode: "position",
+      symbol: "BTCUSDT",
+      productType: "USDT-FUTURES",
+      marginCoin: "USDT",
+      planType: "pos_profit",
+      triggerPrice: "60000",
+      holdSide: "long",
+    },
+    { config, client },
+  ) as Record<string, unknown>;
+
+  const orderId = (placeResult["data"] as Record<string, unknown>)["orderId"] as string;
+  expect(orderId).toBeTruthy();
+
+  const ordersResult = await getTool("futures_get_plan_orders").handler(
+    { productType: "USDT-FUTURES", planType: "profit_loss", symbol: "BTCUSDT" },
+    { config, client },
+  ) as Record<string, unknown>;
+  const orders = ordersResult["data"] as Array<Record<string, unknown>>;
+  expect(orders.some((o) => o["orderId"] === orderId)).toBe(true);
+});
+
+test("futures_place_tpsl mode=plan stores a trigger order", async () => {
+  const placeResult = await getTool("futures_place_tpsl").handler(
+    {
+      mode: "plan",
+      symbol: "BTCUSDT",
+      productType: "USDT-FUTURES",
+      marginCoin: "USDT",
+      planType: "normal_plan",
+      triggerPrice: "55000",
+      side: "buy",
+      tradeSide: "open",
+      orderType: "market",
+      size: "0.001",
+    },
+    { config, client },
+  ) as Record<string, unknown>;
+
+  const orderId = (placeResult["data"] as Record<string, unknown>)["orderId"] as string;
+  const stored = server.getState().planOrders.get(orderId);
+  expect(stored?.planType).toBe("normal_plan");
+});
+
+test("futures_place_tpsl rejects an unknown planType for the mode", async () => {
+  await expect(
+    getTool("futures_place_tpsl").handler(
+      {
+        mode: "position",
+        symbol: "BTCUSDT",
+        productType: "USDT-FUTURES",
+        marginCoin: "USDT",
+        planType: "normal_plan",
+        triggerPrice: "60000",
+      },
+      { config, client },
+    ),
+  ).rejects.toThrow();
+});
