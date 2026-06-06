@@ -1,7 +1,7 @@
-import { parseArgs } from "node:util";
-import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
-import { loadConfig, SERVER_NAME, SERVER_VERSION, toToolErrorPayload } from "bitget-core";
-import { createServer } from "./server.js";
+import { parseArgs } from 'node:util';
+import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
+import { loadConfig, SERVER_NAME, SERVER_VERSION, toToolErrorPayload } from 'bitget-core';
+import { createServer } from './server.js';
 
 function printHelp(): void {
   const help = `
@@ -33,27 +33,33 @@ Environment Variables:
 function parseCli(): { modules?: string; readOnly: boolean; paperTrading?: boolean; help: boolean; version: boolean } {
   const parsed = parseArgs({
     options: {
-      modules: { type: "string" },
-      "read-only": { type: "boolean", default: false },
-      "paper-trading": { type: "boolean", default: false },
-      help: { type: "boolean", default: false },
-      version: { type: "boolean", default: false },
+      modules: { type: 'string' },
+      'read-only': { type: 'boolean', default: false },
+      'paper-trading': { type: 'boolean', default: false },
+      help: { type: 'boolean', default: false },
+      version: { type: 'boolean', default: false }
     },
-    allowPositionals: false,
+    allowPositionals: false
   });
   return {
     modules: parsed.values.modules,
-    readOnly: parsed.values["read-only"],
-    paperTrading: parsed.values["paper-trading"],
+    readOnly: parsed.values['read-only'],
+    paperTrading: parsed.values['paper-trading'],
     help: parsed.values.help,
-    version: parsed.values.version,
+    version: parsed.values.version
   };
 }
 
 export async function main(): Promise<void> {
   const cli = parseCli();
-  if (cli.help) { printHelp(); return; }
-  if (cli.version) { process.stdout.write(`${SERVER_VERSION}\n`); return; }
+  if (cli.help) {
+    printHelp();
+    return;
+  }
+  if (cli.version) {
+    process.stdout.write(`${SERVER_VERSION}\n`);
+    return;
+  }
   const config = loadConfig({ modules: cli.modules, readOnly: cli.readOnly, paperTrading: cli.paperTrading ?? false });
   const server = createServer(config);
   const transport = new StdioServerTransport();

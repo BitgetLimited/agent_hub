@@ -1,11 +1,11 @@
-import type { BitgetRestClient } from "../client/rest-client.js";
-import type { BitgetConfig } from "../config.js";
-import type { ModuleId } from "../constants.js";
+import type { BitgetRestClient } from '../client/rest-client.js';
+import type { BitgetConfig } from '../config.js';
+import type { ModuleId } from '../constants.js';
 
 export type ToolArgs = Record<string, unknown>;
 
 export type JsonSchema = {
-  type: "object";
+  type: 'object';
   properties?: Record<string, unknown>;
   required?: string[];
   additionalProperties?: boolean | Record<string, unknown>;

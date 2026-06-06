@@ -1,7 +1,7 @@
-import { ValidationError } from "../utils/errors.js";
+import { ValidationError } from '../utils/errors.js';
 
 export function asRecord(value: unknown): Record<string, unknown> {
-  if (!value || typeof value !== "object" || Array.isArray(value)) {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) {
     return {};
   }
   return value as Record<string, unknown>;
@@ -9,13 +9,13 @@ export function asRecord(value: unknown): Record<string, unknown> {
 
 export function readString(
   args: Record<string, unknown>,
-  key: string,
+  key: string
 ): string | undefined {
   const value = args[key];
   if (value === undefined || value === null) {
     return undefined;
   }
-  if (typeof value !== "string") {
+  if (typeof value !== 'string') {
     throw new ValidationError(`Parameter "${key}" must be a string.`);
   }
   return value;
@@ -23,16 +23,16 @@ export function readString(
 
 export function readNumber(
   args: Record<string, unknown>,
-  key: string,
+  key: string
 ): number | undefined {
   const value = args[key];
   if (value === undefined || value === null) {
     return undefined;
   }
-  if (typeof value === "string" && value !== "" && !Number.isNaN(Number(value))) {
+  if (typeof value === 'string' && value !== '' && !Number.isNaN(Number(value))) {
     return Number(value);
   }
-  if (typeof value !== "number" || Number.isNaN(value)) {
+  if (typeof value !== 'number' || Number.isNaN(value)) {
     throw new ValidationError(`Parameter "${key}" must be a number.`);
   }
   return value;
@@ -40,13 +40,13 @@ export function readNumber(
 
 export function readBoolean(
   args: Record<string, unknown>,
-  key: string,
+  key: string
 ): boolean | undefined {
   const value = args[key];
   if (value === undefined || value === null) {
     return undefined;
   }
-  if (typeof value !== "boolean") {
+  if (typeof value !== 'boolean') {
     throw new ValidationError(`Parameter "${key}" must be a boolean.`);
   }
   return value;
@@ -54,20 +54,20 @@ export function readBoolean(
 
 export function readStringArray(
   args: Record<string, unknown>,
-  key: string,
+  key: string
 ): string[] | undefined {
   let value = args[key];
   if (value === undefined || value === null) {
     return undefined;
   }
-  if (typeof value === "string") {
+  if (typeof value === 'string') {
     try {
       value = JSON.parse(value);
     } catch {
       throw new ValidationError(`Parameter "${key}" must be a valid JSON array of strings.`);
     }
   }
-  if (!Array.isArray(value) || value.some((item) => typeof item !== "string")) {
+  if (!Array.isArray(value) || value.some((item) => typeof item !== 'string')) {
     throw new ValidationError(`Parameter "${key}" must be an array of strings.`);
   }
   return value;
@@ -75,13 +75,13 @@ export function readStringArray(
 
 export function readObjectArray(
   args: Record<string, unknown>,
-  key: string,
+  key: string
 ): Record<string, unknown>[] | undefined {
   let value = args[key];
   if (value === undefined || value === null) {
     return undefined;
   }
-  if (typeof value === "string") {
+  if (typeof value === 'string') {
     try {
       value = JSON.parse(value);
     } catch {
@@ -90,7 +90,7 @@ export function readObjectArray(
   }
   if (
     !Array.isArray(value) ||
-    value.some((item) => !item || typeof item !== "object" || Array.isArray(item))
+    value.some((item) => !item || typeof item !== 'object' || Array.isArray(item))
   ) {
     throw new ValidationError(`Parameter "${key}" must be an array of objects.`);
   }
@@ -99,7 +99,7 @@ export function readObjectArray(
 
 export function requireString(
   args: Record<string, unknown>,
-  key: string,
+  key: string
 ): string {
   const value = readString(args, key);
   if (!value || value.length === 0) {
@@ -110,7 +110,7 @@ export function requireString(
 
 export function requireObjectArray(
   args: Record<string, unknown>,
-  key: string,
+  key: string
 ): Record<string, unknown>[] {
   const value = readObjectArray(args, key);
   if (!value || value.length === 0) {
@@ -122,7 +122,7 @@ export function requireObjectArray(
 export function ensureOneOf(
   args: Record<string, unknown>,
   keys: string[],
-  message: string,
+  message: string
 ): void {
   const hasAny = keys.some((key) => args[key] !== undefined && args[key] !== null);
   if (!hasAny) {
@@ -133,25 +133,23 @@ export function ensureOneOf(
 export function assertEnum(
   value: string | undefined,
   key: string,
-  values: readonly string[],
+  values: readonly string[]
 ): void {
   if (value === undefined) {
     return;
   }
   if (!values.includes(value)) {
-    throw new ValidationError(
-      `Parameter "${key}" must be one of: ${values.join(", ")}.`,
-    );
+    throw new ValidationError(`Parameter "${key}" must be one of: ${values.join(', ')}.`);
   }
 }
 
 export function compactObject(
-  object: Record<string, unknown>,
+  object: Record<string, unknown>
 ): Record<string, unknown> {
   const next: Record<string, unknown> = {};
-  for (const [key, value] of Object.entries(object)) {
-    if (value !== undefined && value !== null) {
-      next[key] = value;
+  for (const entry of Object.entries(object)) {
+    if (entry[1] !== undefined && entry[1] !== null) {
+      next[entry[0]] = entry[1];
     }
   }
   return next;

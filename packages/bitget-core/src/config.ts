@@ -1,5 +1,5 @@
-import { DEFAULT_MODULES, MODULES, type ModuleId } from "./constants.js";
-import { ConfigError } from "./utils/errors.js";
+import { DEFAULT_MODULES, MODULES, type ModuleId } from './constants.js';
+import { ConfigError } from './utils/errors.js';
 
 export interface CliOptions {
   modules?: string;
@@ -24,13 +24,13 @@ function parseModuleList(rawModules?: string): ModuleId[] {
     return [...DEFAULT_MODULES];
   }
 
-  const trimmed = rawModules.trim().toLowerCase();
-  if (trimmed === "all") {
+  const trimmed = rawModules.trim()
+    .toLowerCase();
+  if (trimmed === 'all') {
     return [...MODULES];
   }
 
-  const requested = trimmed
-    .split(",")
+  const requested = trimmed.split(',')
     .map((item) => item.trim())
     .filter((item) => item.length > 0);
 
@@ -41,10 +41,7 @@ function parseModuleList(rawModules?: string): ModuleId[] {
   const deduped = new Set<ModuleId>();
   for (const moduleId of requested) {
     if (!MODULES.includes(moduleId as ModuleId)) {
-      throw new ConfigError(
-        `Unknown module "${moduleId}".`,
-        `Use one of: ${MODULES.join(", ")} or "all".`,
-      );
+      throw new ConfigError(`Unknown module "${moduleId}".`, `Use one of: ${MODULES.join(', ')} or "all".`);
     }
     deduped.add(moduleId as ModuleId);
   }
@@ -60,24 +57,18 @@ function loadTimeoutMs(): number {
 
   const parsed = Number(raw);
   if (!Number.isFinite(parsed) || parsed <= 0) {
-    throw new ConfigError(
-      `Invalid BITGET_TIMEOUT_MS value "${raw}".`,
-      "Set BITGET_TIMEOUT_MS as a positive integer in milliseconds.",
-    );
+    throw new ConfigError(`Invalid BITGET_TIMEOUT_MS value "${raw}".`, 'Set BITGET_TIMEOUT_MS as a positive integer in milliseconds.');
   }
 
   return Math.floor(parsed);
 }
 
 function loadBaseUrl(): string {
-  const baseUrl = process.env.BITGET_API_BASE_URL?.trim() || "https://api.bitget.com";
-  if (!baseUrl.startsWith("http://") && !baseUrl.startsWith("https://")) {
-    throw new ConfigError(
-      `Invalid BITGET_API_BASE_URL "${baseUrl}".`,
-      "BITGET_API_BASE_URL must start with http:// or https://",
-    );
+  const baseUrl = process.env.BITGET_API_BASE_URL?.trim() || 'https://api.bitget.com';
+  if (!baseUrl.startsWith('http://') && !baseUrl.startsWith('https://')) {
+    throw new ConfigError(`Invalid BITGET_API_BASE_URL "${baseUrl}".`, 'BITGET_API_BASE_URL must start with http:// or https://');
   }
-  return baseUrl.replace(/\/+$/, "");
+  return baseUrl.replace(/\/+$/, '');
 }
 
 export function loadConfig(cli: CliOptions): BitgetConfig {
@@ -86,21 +77,14 @@ export function loadConfig(cli: CliOptions): BitgetConfig {
   const passphrase = process.env.BITGET_PASSPHRASE?.trim();
 
   const hasAuth = Boolean(apiKey && secretKey && passphrase);
-  const partialAuth =
-    Boolean(apiKey) || Boolean(secretKey) || Boolean(passphrase);
+  const partialAuth = Boolean(apiKey) || Boolean(secretKey) || Boolean(passphrase);
 
   if (partialAuth && !hasAuth) {
-    throw new ConfigError(
-      "Partial API credentials detected.",
-      "Set BITGET_API_KEY, BITGET_SECRET_KEY and BITGET_PASSPHRASE together.",
-    );
+    throw new ConfigError('Partial API credentials detected.', 'Set BITGET_API_KEY, BITGET_SECRET_KEY and BITGET_PASSPHRASE together.');
   }
 
   if (cli.paperTrading && cli.readOnly) {
-    throw new ConfigError(
-      "paperTrading and readOnly are mutually exclusive.",
-      "Use --paper-trading for simulated writes, or --read-only to block all writes — not both.",
-    );
+    throw new ConfigError('paperTrading and readOnly are mutually exclusive.', 'Use --paper-trading for simulated writes, or --read-only to block all writes — not both.');
   }
 
   return {
@@ -112,6 +96,6 @@ export function loadConfig(cli: CliOptions): BitgetConfig {
     timeoutMs: loadTimeoutMs(),
     modules: parseModuleList(cli.modules),
     readOnly: cli.readOnly ?? false,
-    paperTrading: cli.paperTrading ?? false,
+    paperTrading: cli.paperTrading ?? false
   };
 }

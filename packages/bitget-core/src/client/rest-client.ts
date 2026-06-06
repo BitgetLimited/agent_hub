@@ -1,19 +1,8 @@
-import { signBitgetPayload } from "../utils/signature.js";
-import {
-  AuthenticationError,
-  BitgetApiError,
-  ConfigError,
-  NetworkError,
-} from "../utils/errors.js";
-import { RateLimiter } from "../utils/rate-limiter.js";
-import type { BitgetConfig } from "../config.js";
-import type {
-  BitgetApiResponse,
-  QueryParams,
-  QueryValue,
-  RequestConfig,
-  RequestResult,
-} from "./types.js";
+import { signBitgetPayload } from '../utils/signature.js';
+import { AuthenticationError, BitgetApiError, ConfigError, NetworkError } from '../utils/errors.js';
+import { RateLimiter } from '../utils/rate-limiter.js';
+import type { BitgetConfig } from '../config.js';
+import type { BitgetApiResponse, QueryParams, QueryValue, RequestConfig, RequestResult } from './types.js';
 
 function isDefined(value: unknown): boolean {
   return value !== undefined && value !== null;
@@ -21,24 +10,26 @@ function isDefined(value: unknown): boolean {
 
 function stringifyQueryValue(value: QueryValue): string {
   if (Array.isArray(value)) {
-    return value.map((item) => String(item)).join(",");
+    return value.map((item) => String(item))
+      .join(',');
   }
   return String(value);
 }
 
 function buildQueryString(query?: QueryParams): string {
   if (!query) {
-    return "";
+    return '';
   }
 
-  const entries = Object.entries(query).filter(([, value]) => isDefined(value));
+  const entries = Object.entries(query)
+    .filter((entry) => isDefined(entry[1]));
   if (entries.length === 0) {
-    return "";
+    return '';
   }
 
   const params = new URLSearchParams();
-  for (const [key, value] of entries) {
-    params.set(key, stringifyQueryValue(value));
+  for (const entry of entries) {
+    params.set(entry[0], stringifyQueryValue(entry[1]));
   }
   return params.toString();
 }
@@ -54,89 +45,84 @@ export class BitgetRestClient {
   public async publicGet<TData = unknown>(
     path: string,
     query?: QueryParams,
-    rateLimit?: RequestConfig["rateLimit"],
+    rateLimit?: RequestConfig['rateLimit']
   ): Promise<RequestResult<TData>> {
     return this.request<TData>({
-      method: "GET",
+      method: 'GET',
       path,
-      auth: "public",
+      auth: 'public',
       query,
-      rateLimit,
+      rateLimit
     });
   }
 
   public async privateGet<TData = unknown>(
     path: string,
     query?: QueryParams,
-    rateLimit?: RequestConfig["rateLimit"],
+    rateLimit?: RequestConfig['rateLimit']
   ): Promise<RequestResult<TData>> {
     return this.request<TData>({
-      method: "GET",
+      method: 'GET',
       path,
-      auth: "private",
+      auth: 'private',
       query,
-      rateLimit,
+      rateLimit
     });
   }
 
   public async privatePost<TData = unknown>(
     path: string,
-    body?: RequestConfig["body"],
-    rateLimit?: RequestConfig["rateLimit"],
+    body?: RequestConfig['body'],
+    rateLimit?: RequestConfig['rateLimit']
   ): Promise<RequestResult<TData>> {
     return this.request<TData>({
-      method: "POST",
+      method: 'POST',
       path,
-      auth: "private",
+      auth: 'private',
       body,
-      rateLimit,
+      rateLimit
     });
   }
 
   private async request<TData = unknown>(
-    config: RequestConfig,
+    config: RequestConfig
   ): Promise<RequestResult<TData>> {
     const queryString = buildQueryString(config.query);
     const endpoint = queryString.length > 0 ? `${config.path}?${queryString}` : config.path;
     const url = `${this.config.baseUrl}${endpoint}`;
-    const bodyJson = config.body ? JSON.stringify(config.body) : "";
-    const timestamp = Date.now().toString();
+    const bodyJson = config.body ? JSON.stringify(config.body) : '';
+    const timestamp = Date.now()
+      .toString();
 
     if (config.rateLimit) {
       await this.rateLimiter.consume(config.rateLimit);
     }
 
     const headers = new Headers({
-      "Content-Type": "application/json",
-      Accept: "application/json",
-      locale: "en-US",
+      'Content-Type': 'application/json',
+      Accept: 'application/json',
+      locale: 'en-US'
     });
 
     if (this.config.paperTrading) {
-      headers.set("paptrading", "1");
+      headers.set('paptrading', '1');
     }
 
-    if (config.auth === "private") {
+    if (config.auth === 'private') {
       if (!this.config.hasAuth) {
-        throw new ConfigError(
-          "Private endpoint requires API credentials.",
-          "Configure BITGET_API_KEY, BITGET_SECRET_KEY and BITGET_PASSPHRASE.",
-        );
+        throw new ConfigError('Private endpoint requires API credentials.', 'Configure BITGET_API_KEY, BITGET_SECRET_KEY and BITGET_PASSPHRASE.');
       }
 
       if (!this.config.apiKey || !this.config.secretKey || !this.config.passphrase) {
-        throw new ConfigError(
-          "Invalid private API credentials state.",
-          "Ensure all BITGET credentials are set.",
-        );
+        throw new ConfigError('Invalid private API credentials state.', 'Ensure all BITGET credentials are set.');
       }
 
       const payload = `${timestamp}${config.method.toUpperCase()}${endpoint}${bodyJson}`;
       const signature = signBitgetPayload(payload, this.config.secretKey);
-      headers.set("ACCESS-KEY", this.config.apiKey);
-      headers.set("ACCESS-SIGN", signature);
-      headers.set("ACCESS-PASSPHRASE", this.config.passphrase);
-      headers.set("ACCESS-TIMESTAMP", timestamp);
+      headers.set('ACCESS-KEY', this.config.apiKey);
+      headers.set('ACCESS-SIGN', signature);
+      headers.set('ACCESS-PASSPHRASE', this.config.passphrase);
+      headers.set('ACCESS-TIMESTAMP', timestamp);
     }
 
     let response: Response;
@@ -144,15 +130,11 @@ export class BitgetRestClient {
       response = await fetch(url, {
         method: config.method,
         headers,
-        body: config.method === "POST" ? bodyJson : undefined,
-        signal: AbortSignal.timeout(this.config.timeoutMs),
+        body: config.method === 'POST' ? bodyJson : undefined,
+        signal: AbortSignal.timeout(this.config.timeoutMs)
       });
     } catch (error) {
-      throw new NetworkError(
-        `Failed to call Bitget endpoint ${config.method} ${endpoint}.`,
-        `${config.method} ${endpoint}`,
-        error,
-      );
+      throw new NetworkError(`Failed to call Bitget endpoint ${config.method} ${endpoint}.`, `${config.method} ${endpoint}`, error);
     }
 
     const rawText = await response.text();
@@ -161,48 +143,40 @@ export class BitgetRestClient {
       parsed = (rawText ? JSON.parse(rawText) : {}) as BitgetApiResponse<TData>;
     } catch (error) {
       if (!response.ok) {
-        const messagePreview = rawText.slice(0, 160).replace(/\s+/g, " ").trim();
-        throw new BitgetApiError(
-          `HTTP ${response.status} from Bitget: ${messagePreview || "Non-JSON response body"}`,
-          {
-            code: String(response.status),
-            endpoint: `${config.method} ${config.path}`,
-            suggestion: "Verify endpoint path and request parameters.",
-          },
-        );
+        const messagePreview = rawText.slice(0, 160)
+          .replace(/\s+/g, ' ')
+          .trim();
+        throw new BitgetApiError(`HTTP ${response.status} from Bitget: ${messagePreview || 'Non-JSON response body'}`, {
+          code: String(response.status),
+          endpoint: `${config.method} ${config.path}`,
+          suggestion: 'Verify endpoint path and request parameters.'
+        });
       }
-      throw new NetworkError(
-        `Bitget returned non-JSON response for ${config.method} ${endpoint}.`,
-        `${config.method} ${endpoint}`,
-        error,
-      );
+      throw new NetworkError(`Bitget returned non-JSON response for ${config.method} ${endpoint}.`, `${config.method} ${endpoint}`, error);
     }
 
     if (!response.ok) {
-      throw new BitgetApiError(
-        `HTTP ${response.status} from Bitget: ${parsed.msg ?? "Unknown error"}`,
-        {
-          code: String(response.status),
-          endpoint: `${config.method} ${config.path}`,
-          suggestion: "Retry later or verify endpoint parameters.",
-        },
-      );
+      throw new BitgetApiError(`HTTP ${response.status} from Bitget: ${parsed.msg ?? 'Unknown error'}`, {
+        code: String(response.status),
+        endpoint: `${config.method} ${config.path}`,
+        suggestion: 'Retry later or verify endpoint parameters.'
+      });
     }
 
     const responseCode = parsed.code;
-    if (responseCode && responseCode !== "00000") {
-      const message = parsed.msg ?? "Bitget API request failed.";
+    if (responseCode && responseCode !== '00000') {
+      const message = parsed.msg ?? 'Bitget API request failed.';
       if (
-        responseCode === "40017" ||
-        responseCode === "40018" ||
-        responseCode === "40036"
+        responseCode === '40017' ||
+        responseCode === '40018' ||
+        responseCode === '40036'
       ) {
-        throw new AuthenticationError(message, "Check API key, secret, passphrase and permissions.", `${config.method} ${config.path}`);
+        throw new AuthenticationError(message, 'Check API key, secret, passphrase and permissions.', `${config.method} ${config.path}`);
       }
 
       throw new BitgetApiError(message, {
         code: responseCode,
-        endpoint: `${config.method} ${config.path}`,
+        endpoint: `${config.method} ${config.path}`
       });
     }
 
@@ -210,7 +184,7 @@ export class BitgetRestClient {
       endpoint: `${config.method} ${config.path}`,
       requestTime: new Date().toISOString(),
       data: (parsed.data ?? null) as TData,
-      raw: parsed,
+      raw: parsed
     };
   }
 }

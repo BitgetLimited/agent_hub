@@ -6,7 +6,7 @@ export interface SpotOrder {
   orderType: string;
   price?: string;
   size: string;
-  status: "live" | "filled" | "cancelled" | "partially_filled";
+  status: 'live' | 'filled' | 'cancelled' | 'partially_filled';
   fillSize: string;
   fillPrice?: string;
   cTime: string;
@@ -21,7 +21,7 @@ export interface SpotPlanOrder {
   triggerPrice: string;
   triggerType: string;
   size: string;
-  status: "live" | "filled" | "cancelled";
+  status: 'live' | 'filled' | 'cancelled';
   cTime: string;
 }
 
@@ -35,7 +35,7 @@ export interface FuturesOrder {
   orderType: string;
   price?: string;
   size: string;
-  status: "live" | "filled" | "cancelled";
+  status: 'live' | 'filled' | 'cancelled';
   cTime: string;
   uTime: string;
 }
@@ -43,7 +43,7 @@ export interface FuturesOrder {
 export interface Position {
   symbol: string;
   productType: string;
-  holdSide: "long" | "short";
+  holdSide: 'long' | 'short';
   total: string;
   available: string;
   averageOpenPrice: string;
@@ -71,7 +71,7 @@ export interface Withdrawal {
   coin: string;
   size: string;
   address: string;
-  status: "pending" | "processing" | "success" | "cancelled";
+  status: 'pending' | 'processing' | 'success' | 'cancelled';
   cTime: string;
 }
 
@@ -80,14 +80,14 @@ export interface Deposit {
   coin: string;
   size: string;
   address: string;
-  status: "pending" | "success";
+  status: 'pending' | 'success';
   cTime: string;
 }
 
 export interface Subaccount {
   subUid: string;
   subName: string;
-  status: "normal" | "freeze";
+  status: 'normal' | 'freeze';
 }
 
 export interface MarginOrder {
@@ -97,13 +97,13 @@ export interface MarginOrder {
   orderType: string;
   price?: string;
   size: string;
-  status: "live" | "filled" | "cancelled";
+  status: 'live' | 'filled' | 'cancelled';
   cTime: string;
 }
 
 export interface MarginPosition {
   symbol: string;
-  side: "long" | "short";
+  side: 'long' | 'short';
   size: string;
   leverage: string;
 }
@@ -124,14 +124,14 @@ export interface ConvertRecord {
   toCoin: string;
   fromSize: string;
   toSize: string;
-  status: "success";
+  status: 'success';
   cTime: string;
 }
 
 export interface EarnProduct {
   productId: string;
   coin: string;
-  productType: "flexible" | "fixed";
+  productType: 'flexible' | 'fixed';
   apy: string;
   minAmount: string;
   term?: number;
@@ -142,16 +142,16 @@ export interface EarnHolding {
   productId: string;
   coin: string;
   size: string;
-  status: "holding" | "redeemed";
+  status: 'holding' | 'redeemed';
 }
 
 export interface P2pOrder {
   orderId: string;
-  type: "buy" | "sell";
+  type: 'buy' | 'sell';
   coin: string;
   fiatCoin: string;
   fiatAmount: string;
-  status: "pending" | "completed" | "cancelled";
+  status: 'pending' | 'completed' | 'cancelled';
   cTime: string;
 }
 
@@ -159,7 +159,7 @@ export type BrokerSubaccount = Subaccount;
 
 export interface CopySettings {
   traderId: string;
-  mode: "spot" | "mix";
+  mode: 'spot' | 'mix';
   copyAmount?: string;
   stopLoss?: string;
 }
@@ -184,12 +184,15 @@ export interface MockState {
   p2pOrders: Map<string, P2pOrder>;
   brokerSubaccounts: Map<string, BrokerSubaccount>;
   copyTradingSettings: Map<string, CopySettings>;
-  errorOverrides: Map<string, { code: string; msg: string }>;
+  errorOverrides: Map<string, {
+    code: string;
+    msg: string;
+  }>;
   _idCounter: number;
 }
 
 export function nextId(state: MockState, prefix: string): string {
-  return `${prefix}${String(state._idCounter++).padStart(10, "0")}`;
+  return `${prefix}${String(state._idCounter++).padStart(10, '0')}`;
 }
 
 export function createEmptyState(): MockState {
@@ -214,6 +217,6 @@ export function createEmptyState(): MockState {
     brokerSubaccounts: new Map(),
     copyTradingSettings: new Map(),
     errorOverrides: new Map(),
-    _idCounter: 1,
+    _idCounter: 1
   };
 }
