@@ -1,0 +1,65 @@
+name: Release
+
+# Publish all packages to npm and create a GitHub Release when a semver tag is pushed.
+# Tag format: vX.Y.Z (e.g. v1.0.0). Push with: git tag v1.0.0 && git push --tags
+#
+# Required repository secret:
+#   NPM_TOKEN  — an npm "Automation" access token (bypasses 2FA).
+#                npmjs.com -> Access Tokens -> Generate New Token -> Automation
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+
+# Avoid overlapping release runs for the same tag.
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+permissions:
+  contents: write # needed to create the GitHub Release
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # full history so release notes can diff against the previous tag
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 11.5.2
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+          registry-url: https://registry.npmjs.org
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build all packages
+        run: pnpm -r build
+
+      - name: Typecheck
+        run: pnpm -r typecheck
+
+      - name: Test
+        run: pnpm -r run test
+
+      - name: Publish to npm
+        run: node scripts/publish.mjs --publish
+        env:
+          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          generate_release_notes: true
