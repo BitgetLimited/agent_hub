@@ -496,5 +496,50 @@ export function registerFuturesTradeTools(): ToolSpec[] {
               }), privateRateLimit('futures_update_config', 5));
       return normalize(response);
     }
+  }, {
+    name: 'futures_modify_plan',
+    module: 'futures',
+    description:
+      "Modify an existing TP/SL or trigger order. mode='tpsl' modifies a position TP/SL (triggerPrice, triggerType, executePrice, size, rangeRate). mode='plan' modifies a trigger order (newSize, newPrice, newCallbackRatio, triggerPrice). Provide orderId or clientOid. [CAUTION] Affects live orders. Private endpoint. Rate limit: 10 req/s per UID.",
+    isWrite: true,
+    inputSchema: {
+      type: 'object',
+      properties: {
+        mode: { type: 'string', enum: ['tpsl', 'plan'] },
+        productType: { type: 'string', enum: [...PRODUCT_TYPES] },
+        symbol: { type: 'string' },
+        marginCoin: { type: 'string' },
+        orderId: { type: 'string', description: 'One of orderId or clientOid required.' },
+        clientOid: { type: 'string' },
+        triggerPrice: { type: 'string' },
+        triggerType: { type: 'string', enum: ['fill_price', 'mark_price'] },
+        executePrice: { type: 'string' },
+        size: { type: 'string', description: 'tpsl mode size.' },
+        rangeRate: { type: 'string', description: 'tpsl moving_plan callback rate.' },
+        newSize: { type: 'string', description: 'plan mode new size.' },
+        newPrice: { type: 'string', description: 'plan mode new limit price.' },
+        newCallbackRatio: { type: 'string', description: 'plan mode track_plan callback.' }
+      },
+      required: ['mode', 'productType']
+    },
+    handler: async (rawArgs, context) => {
+      const args = asRecord(rawArgs);
+      const mode = requireString(args, 'mode');
+      assertEnum(mode, 'mode', ['tpsl', 'plan']);
+      const productType = requireString(args, 'productType');
+      assertEnum(productType, 'productType', PRODUCT_TYPES);
+      const orderId = readString(args, 'orderId');
+      const clientOid = readString(args, 'clientOid');
+      if (!orderId && !clientOid) {
+        throw new ValidationError('Provide at least one of "orderId" or "clientOid".');
+      }
+      const body = { ...args };
+      delete body.mode;
+      const path = mode === 'tpsl'
+        ? FUTURES_ENDPOINTS.order.modifyTpslOrder
+        : FUTURES_ENDPOINTS.order.modifyPlanOrder;
+      const response = await context.client.privatePost(path, compactObject(body), privateRateLimit('futures_modify_plan', 10));
+      return normalize(response);
+    }
   }];
 }

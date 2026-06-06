@@ -211,3 +211,42 @@ test("futures_place_tpsl rejects an unknown planType for the mode", async () => 
     ),
   ).rejects.toThrow();
 });
+
+test("futures_modify_plan updates a stored plan order trigger price", async () => {
+  const placeResult = await getTool("futures_place_tpsl").handler(
+    {
+      mode: "position",
+      symbol: "BTCUSDT",
+      productType: "USDT-FUTURES",
+      marginCoin: "USDT",
+      planType: "loss_plan",
+      triggerPrice: "45000",
+      size: "0.001",
+    },
+    { config, client },
+  ) as Record<string, unknown>;
+  const orderId = (placeResult["data"] as Record<string, unknown>)["orderId"] as string;
+
+  await getTool("futures_modify_plan").handler(
+    {
+      mode: "tpsl",
+      productType: "USDT-FUTURES",
+      symbol: "BTCUSDT",
+      marginCoin: "USDT",
+      orderId,
+      triggerPrice: "44000",
+    },
+    { config, client },
+  );
+
+  expect(server.getState().planOrders.get(orderId)?.triggerPrice).toBe("44000");
+});
+
+test("futures_modify_plan requires orderId or clientOid", async () => {
+  await expect(
+    getTool("futures_modify_plan").handler(
+      { mode: "tpsl", productType: "USDT-FUTURES", triggerPrice: "44000" },
+      { config, client },
+    ),
+  ).rejects.toThrow();
+});
