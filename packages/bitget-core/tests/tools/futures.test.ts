@@ -124,3 +124,27 @@ test("futures_set_leverage stores leverage in state", async () => {
   const lev = server.getState().leverage.get("BTCUSDT");
   expect(lev).toBe(20);
 });
+
+test("futures_get_plan_orders returns live plan orders from state", async () => {
+  const now = Date.now().toString();
+  server.getState().planOrders.set("PLAN0000000001", {
+    orderId: "PLAN0000000001",
+    symbol: "BTCUSDT",
+    productType: "usdt-futures",
+    planType: "profit_plan",
+    triggerPrice: "60000",
+    size: "0.001",
+    status: "live",
+    cTime: now,
+    uTime: now,
+  });
+
+  const result = await getTool("futures_get_plan_orders").handler(
+    { productType: "USDT-FUTURES", planType: "profit_loss", symbol: "BTCUSDT" },
+    { config, client },
+  ) as Record<string, unknown>;
+
+  const orders = result["data"] as Array<Record<string, unknown>>;
+  expect(Array.isArray(orders)).toBe(true);
+  expect(orders.some((o) => o["orderId"] === "PLAN0000000001")).toBe(true);
+});
