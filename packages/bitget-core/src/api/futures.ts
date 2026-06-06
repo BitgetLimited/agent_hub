@@ -27,7 +27,14 @@ export const FUTURES_ENDPOINTS = {
     ordersHistory: '/api/v2/mix/order/orders-history',
     ordersPending: '/api/v2/mix/order/orders-pending',
     fills: '/api/v2/mix/order/fills',
-    fillHistory: '/api/v2/mix/order/fill-history'
+    fillHistory: '/api/v2/mix/order/fill-history',
+    placeTpslOrder: '/api/v2/mix/order/place-tpsl-order',
+    placePlanOrder: '/api/v2/mix/order/place-plan-order',
+    modifyTpslOrder: '/api/v2/mix/order/modify-tpsl-order',
+    modifyPlanOrder: '/api/v2/mix/order/modify-plan-order',
+    cancelPlanOrder: '/api/v2/mix/order/cancel-plan-order',
+    ordersPlanPending: '/api/v2/mix/order/orders-plan-pending',
+    ordersPlanHistory: '/api/v2/mix/order/orders-plan-history'
   },
   position: {
     historyPosition: '/api/v2/mix/position/history-position',
