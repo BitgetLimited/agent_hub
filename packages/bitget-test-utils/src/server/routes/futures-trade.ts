@@ -1,6 +1,6 @@
 import type { Router } from '../router.js';
 import { nextId } from '../state.js';
-import type { FuturesOrder } from '../state.js';
+import type { FuturesOrder, PlanOrder } from '../state.js';
 
 export function registerFuturesTradeRoutes(router: Router): void {
   router.register('POST', '/api/v2/mix/order/place-order', (_req, body, _query, state) => {
@@ -162,5 +162,134 @@ export function registerFuturesTradeRoutes(router: Router): void {
       symbol: body['symbol'],
       autoMargin: body['autoMargin']
     };
+  });
+
+  router.register('POST', '/api/v2/mix/order/place-tpsl-order', (_req, body, _query, state) => {
+    const orderId = nextId(state, 'PLAN');
+    const now = Date.now()
+      .toString();
+    const order: PlanOrder = {
+      orderId,
+      clientOid: body['clientOid'] as string | undefined,
+      symbol: (body['symbol'] as string) ?? 'BTCUSDT',
+      productType: (body['productType'] as string) ?? 'usdt-futures',
+      planType: (body['planType'] as string) ?? 'profit_plan',
+      triggerPrice: body['triggerPrice'] as string | undefined,
+      size: body['size'] as string | undefined,
+      status: 'live',
+      cTime: now,
+      uTime: now
+    };
+    state.planOrders.set(orderId, order);
+    return {
+      orderId,
+      clientOid: order.clientOid ?? ''
+    };
+  });
+
+  router.register('POST', '/api/v2/mix/order/place-plan-order', (_req, body, _query, state) => {
+    const orderId = nextId(state, 'PLAN');
+    const now = Date.now()
+      .toString();
+    const order: PlanOrder = {
+      orderId,
+      clientOid: body['clientOid'] as string | undefined,
+      symbol: (body['symbol'] as string) ?? 'BTCUSDT',
+      productType: (body['productType'] as string) ?? 'usdt-futures',
+      planType: (body['planType'] as string) ?? 'normal_plan',
+      triggerPrice: body['triggerPrice'] as string | undefined,
+      size: body['size'] as string | undefined,
+      status: 'live',
+      cTime: now,
+      uTime: now
+    };
+    state.planOrders.set(orderId, order);
+    return {
+      orderId,
+      clientOid: order.clientOid ?? ''
+    };
+  });
+
+  router.register('POST', '/api/v2/mix/order/modify-tpsl-order', (_req, body, _query, state) => {
+    const orderId = body['orderId'] as string;
+    const order = state.planOrders.get(orderId);
+    if (!order) {
+      throw new Error(`Plan order ${orderId} not found`);
+    }
+    if (body['triggerPrice'] !== undefined) {
+      order.triggerPrice = body['triggerPrice'] as string;
+    }
+    if (body['size'] !== undefined) {
+      order.size = body['size'] as string;
+    }
+    order.uTime = Date.now()
+      .toString();
+    return {
+      orderId
+    };
+  });
+
+  router.register('POST', '/api/v2/mix/order/modify-plan-order', (_req, body, _query, state) => {
+    const orderId = body['orderId'] as string;
+    const order = state.planOrders.get(orderId);
+    if (!order) {
+      throw new Error(`Plan order ${orderId} not found`);
+    }
+    if (body['triggerPrice'] !== undefined) {
+      order.triggerPrice = body['triggerPrice'] as string;
+    }
+    if (body['newSize'] !== undefined) {
+      order.size = body['newSize'] as string;
+    }
+    order.uTime = Date.now()
+      .toString();
+    return {
+      orderId
+    };
+  });
+
+  router.register('POST', '/api/v2/mix/order/cancel-plan-order', (_req, body, _query, state) => {
+    const now = Date.now()
+      .toString();
+    const orderIdList = body['orderIdList'] as {
+      orderId: string;
+    }[] | undefined;
+    if (orderIdList && orderIdList.length > 0) {
+      const ids = orderIdList.map((item) => item.orderId);
+      ids.forEach((id) => {
+        const o = state.planOrders.get(id);
+        if (o) {
+          o.status = 'cancelled';
+          o.uTime = now;
+        }
+      });
+      return {
+        successList: ids.map((id) => ({
+          orderId: id
+        })),
+        failureList: []
+      };
+    }
+    const symbol = body['symbol'] as string | undefined;
+    for (const o of state.planOrders.values()) {
+      if (o.status === 'live' && (!symbol || o.symbol === symbol)) {
+        o.status = 'cancelled';
+        o.uTime = now;
+      }
+    }
+    return {
+      successList: [],
+      failureList: []
+    };
+  });
+
+  router.register('GET', '/api/v2/mix/order/orders-plan-pending', (_req, _body, query, state) => {
+    const symbol = query.get('symbol');
+    return [...state.planOrders.values()].filter((o) => o.status === 'live' && (!symbol || o.symbol === symbol));
+  });
+
+  router.register('GET', '/api/v2/mix/order/orders-plan-history', (_req, _body, query, state) => {
+    const symbol = query.get('symbol');
+    return [...state.planOrders.values()].filter((o) => o.status !== 'live' && (!symbol || o.symbol === symbol));
   });
 }
