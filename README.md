@@ -197,7 +197,7 @@ The `technical-analysis` skill requires Python: `pip install pandas numpy`
 | Module | Tools | Loaded by default |
 |--------|:-----:|:-----------------:|
 | `spot` | 13 | ✅ |
-| `futures` | 14 | ✅ |
+| `futures` | 15 | ✅ |
 | `account` | 8 | ✅ |
 | `margin` | 7 | — |
 | `copytrading` | 5 | — |
@@ -207,7 +207,7 @@ The `technical-analysis` skill requires Python: `pip install pandas numpy`
 | `broker` | 3 | — |
 
 Default: `spot + futures + account` = 36 tools (fits within Cursor's 40-tool limit).
-Load everything: `--modules all`
+Load everything: `--modules all` (59 tools)
 
 ---
 
@@ -229,6 +229,8 @@ pnpm install
 pnpm -r build
 pnpm -r test
 ```
+
+**Documentation:** [`docs/project.md`](docs/project.md) (product), [`docs/architecture.md`](docs/architecture.md) (technical), [`docs/conventions.md`](docs/conventions.md) (coding conventions), [`docs/ai-context.md`](docs/ai-context.md) (AI agent context).
 
 ---
 
