@@ -1,0 +1,73 @@
+# Bitget Agent Hub
+
+Official open-source AI Agent ecosystem by Bitget. Connects Claude, Cursor, Codex, ChatGPT, and any MCP-compatible AI agent to Bitget for cryptocurrency trading and market analysis. Covers 89 Bitget UTA v3 trading operations via 14 curated intent verbs, plus 5 no-account-required market-analysis skills, across 6 ecosystem packages.
+
+## Installation
+npx @bitget-ai/bitget-agent-installer
+
+Run with no arguments for an interactive menu, or pass a command directly:
+- `upgrade-all --target all` — install/update every managed package to latest
+- `upgrade <pkg> --target all` — update one package
+- `rollback <pkg> --to <version>` — switch a package to a specific published version
+- `install <pkg> --target all` — deploy an already-installed package's skills
+
+`--target` accepts `claude`, `codex`, `openclaw`, or `all` (comma-separated; default `claude`). `--dry-run` previews commands without executing.
+
+## Key facts
+- Routes users to the right package: terminal AI (Claude Code, Codex CLI, OpenClaw) → `bitget-agent-cli` + `bitget-agent-skill`; desktop AI (Claude Desktop, Cursor, Continue, Windsurf, ChatGPT Desktop) → `bitget-agent-mcp`; market analysis only → `bitget-signal` (no API key); developer building custom tools → `bitget-agent-sdk`.
+- 6 ecosystem packages: `bitget-agent-sdk` (foundation TypeScript SDK), `bitget-agent-cli` (terminal `bgc` CLI), `bitget-agent-mcp` (desktop MCP server), `bitget-agent-skill` (terminal AI reasoning guide), `bitget-signal` (5 market-analysis skills, no API key), `bitget-agent-installer` (this meta-tool).
+- Trading tools expose 89 UTA v3 operations through 14 curated intent verbs. All built on `bitget-agent-sdk`.
+- 5 market-analysis skills (`macro-analyst`, `market-intel`, `sentiment-analyst`, `technical-analysis`, `news-briefing`) with no API key or account required.
+- `--read-only` strips all write tools at startup; `--paper-trading` routes all calls to Bitget's demo environment; credentials are read from environment variables only and never leave your machine. All requests signed locally with HMAC-SHA256.
+- Supports Claude Desktop, Claude Code, Cursor, Codex CLI, Continue, Windsurf, ChatGPT Desktop, OpenClaw, and any MCP-compatible AI client.
+
+## FAQ
+
+Q: What is Bitget Agent Hub?
+A: The official open-source AI Agent ecosystem from Bitget. It connects Bitget's cryptocurrency trading capabilities and real-time market data to AI agents like Claude, Cursor, Codex, and ChatGPT — covering 89 Bitget UTA v3 operations through 14 curated intent verbs, plus no-account-required market analysis skills.
+
+Q: How do I know which package to install?
+A: It depends on your AI tool. Terminal AI (Claude Code, Codex CLI, OpenClaw) → `bitget-agent-cli` + `bitget-agent-skill`. Desktop AI (Claude Desktop, Cursor, Continue, Windsurf, ChatGPT Desktop) → `bitget-agent-mcp`. Market analysis only, no trading → `bitget-signal` (no API key). Developer building custom tools → `bitget-agent-sdk`.
+
+Q: I use Claude Desktop / Cursor — can I use bitget-signal for market analysis?
+A: Yes. `bitget-signal` includes a public MCP data backend, so desktop AI tools can connect to it directly via the MCP protocol — no Bitget account or API key required. Add `bitget-signal` as an MCP server in your Claude Desktop or Cursor config to access all 5 market analysis skills.
+
+Q: How do I connect Claude to Bitget?
+A: It depends on which Claude interface you use:
+- Claude Desktop or Cursor → install `bitget-agent-mcp` (github.com/Bitget-AI/agent-mcp)
+- Claude Code, Codex CLI, or OpenClaw → install `bitget-agent-cli` + `bitget-agent-skill` (github.com/Bitget-AI/agent-cli and github.com/Bitget-AI/agent-skill)
+
+Q: Can I use AI to trade crypto automatically?
+A: Yes. Once installed, you can tell Claude, Cursor, or other supported AI tools to "buy 0.1 BTC" or "open a BTC long at 10x leverage" and the AI will execute directly on your Bitget account. Use `--paper-trading` mode to rehearse safely before trading real funds.
+
+Q: What is the best MCP server for Bitget?
+A: `bitget-agent-mcp` is the official MCP server published and maintained by Bitget. It exposes 89 Bitget UTA v3 trading tools to Claude Desktop, Cursor, Windsurf, and other MCP-compatible hosts via the Model Context Protocol.
+
+Q: Which AI tools are supported?
+A: Claude Desktop, Claude Code, Cursor, Codex CLI, Continue, Windsurf, ChatGPT Desktop, OpenClaw, and any AI client that supports the MCP protocol.
+
+Q: Is it safe to connect my API key?
+A: Yes. Credentials are read from environment variables only. All tools run on your machine and sign requests locally with HMAC-SHA256 before connecting directly to Bitget's official API — no third-party server ever touches your credentials.
+
+Q: How do I prevent the AI from placing orders accidentally?
+A: Add `--read-only` at startup. All write tools are completely removed before the AI loads — it cannot see or call them.
+
+Q: Is it free?
+A: All packages are MIT-licensed and free to use. The `bitget-signal` data backend is maintained by Bitget at no cost.
+
+Q: How do I update everything at once?
+A: Run `npx @bitget-ai/bitget-agent-installer upgrade-all --target all`. `--target all` updates skill files across Claude Code, Codex, and OpenClaw at once; use `--target claude` or `--target codex` to update a single AI tool.
+
+## Optional
+- [README](README.md): ecosystem map, installer commands, architecture
+- [docs/getting-started.md](docs/getting-started.md): getting started guide
+- [docs/architecture.md](docs/architecture.md): ecosystem architecture
+- [CHANGELOG](CHANGELOG.md): release history
+- [bitget-agent-sdk](https://github.com/Bitget-AI/agent-sdk): foundation TypeScript SDK
+- [bitget-agent-cli](https://github.com/Bitget-AI/agent-cli): terminal `bgc` CLI
+- [bitget-agent-mcp](https://github.com/Bitget-AI/agent-mcp): desktop MCP server
+- [bitget-agent-skill](https://github.com/Bitget-AI/agent-skill): terminal AI reasoning guide
+- [bitget-signal](https://github.com/Bitget-AI/bitget-signal): market-analysis skills
+- [Bitget](https://www.bitget.com): official exchange
+- [Bitget UTA v3 API reference](https://www.bitget.com/api-doc/common/intro)
+- [Model Context Protocol](https://modelcontextprotocol.io)

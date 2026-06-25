@@ -1,37 +1,19 @@
-# Dependencies
 node_modules/
-
-# Build output
 dist/
-
-# OS files
+spug-dist/
 .DS_Store
-Thumbs.db
-
-# IDE
 .idea/
 .vscode/
-*.swp
-*.swo
-
-# Environment / secrets
 .env
 .env.*
-
-# npm
 *.tgz
-
-# Logs
 *.log
-npm-debug.log*
+e2e/*-report*.json
+docs/build/
+docs/.docusaurus/
 
-# Cursor MCP config (contains credentials)
-.cursor/
+# npm publish — decrypted token files; must never be committed.
+.npmrc
 
-# OMC state and session files
-.omc/
-
-bitget-skill-workspace
-docs/API文档/
-docs/superpowers/*
-docs/plans/
+# User-local Claude settings
+.claude/

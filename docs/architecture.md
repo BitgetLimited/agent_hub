@@ -1,512 +1,167 @@
-# Bitget MCP Server - Architecture Design
+# Architecture
 
-> Version: 1.0.0-draft
-> Date: 2026-02-10
-> Status: Design Phase
+> Version: 3.0.0 — Bitget UTA (Unified Trading Account) v3 API
+> Status: Current
 
-## 1. Product Overview
+## 1. Overview
 
-Bitget 官方 MCP (Model Context Protocol) Server，让主流 AI 助手能够直接调用 Bitget 交易所 API。
+Bitget Agent Hub is a layered system: one **foundation SDK** wraps the Bitget UTA v3 REST API as a typed, annotated catalog, and three **surfaces** (CLI, MCP server, skill) project that catalog into whatever shape a given AI host expects. An independent **signal product** (`@bitget-ai/bitget-signal`) sits alongside for market analysis without an API key.
 
-**目标用户**: 使用 AI 编程助手 / AI Agent 的 Bitget 用户
-**支持客户端**: Claude Desktop, Cursor, VS Code (GitHub Copilot), Codex, Windsurf, ChatGPT 等所有 MCP 兼容客户端
-**分发方式**: npm 包，用户通过 `npx -y @bitget/mcp-server` 一键启动
-
-### 1.1 核心价值
-
-- 用户可以通过自然语言让 AI 查询行情、下单、管理仓位
-- 零部署成本，一行配置即可接入
-- 官方维护，安全可靠，与 Bitget API 版本同步
-
-### 1.2 用户配置示例
-
-**最简配置**（默认加载 spot + futures + account 模块）:
-
-```json
-{
-  "mcpServers": {
-    "bitget": {
-      "command": "npx",
-      "args": ["-y", "@bitget/mcp-server"],
-      "env": {
-        "BITGET_API_KEY": "bg_xxx",
-        "BITGET_SECRET_KEY": "your-secret-key",
-        "BITGET_PASSPHRASE": "your-passphrase"
-      }
-    }
-  }
-}
+```
+                         ┌───────────────────────────┐
+                         │   AI assistant / agent     │
+                         └─────────────┬──────────────┘
+            shell (bgc)   │   MCP (stdio)   │   skill (md)
+        ┌─────────────────┼─────────────────┼──────────────────┐
+        ▼                 ▼                 ▼                  
+  ┌───────────┐     ┌───────────┐     ┌───────────┐           
+  │ agent-cli │     │ agent-mcp │     │agent-skill│           
+  └─────┬─────┘     └─────┬─────┘     └─────┬─────┘           
+        └───────────┬─────┴─────────────────┘                 
+                    ▼                                          
+              ┌───────────┐   (foundation — 109 ops)          
+              │ agent-sdk │   catalog · REST client · tools    
+              └─────┬─────┘   builder · mock server            
+                    │ HMAC-SHA256, HTTPS                        
+                    ▼                                          
+              api.bitget.com  (UTA v3 — /api/v3/...)           
 ```
 
-**指定模块**:
+**Design goals:** zero version drift between the API spec and the tools the AI sees; one foundation reused by every surface; a tool surface small enough to fit host tool caps yet able to reach every operation on demand.
 
-```json
-{
-  "mcpServers": {
-    "bitget": {
-      "command": "npx",
-      "args": ["-y", "@bitget/mcp-server", "--modules", "spot,futures,margin,account"],
-      "env": {
-        "BITGET_API_KEY": "bg_xxx",
-        "BITGET_SECRET_KEY": "your-secret-key",
-        "BITGET_PASSPHRASE": "your-passphrase"
-      }
-    }
-  }
-}
+---
+
+## 2. Spec-driven pipeline
+
+The SDK is generated from the Bitget UTA v3 OpenAPI spec — it is not hand-maintained tool-by-tool.
+
+```
+openapi.yaml  ──(pnpm run gen)──►  src/generated/catalog.ts  ──►  REST client
+                                                              ──►  tool builder
+                                                              ──►  mock server
 ```
 
-**只读模式**（禁止所有写操作）:
+- **`openapi.yaml`** — the source of truth for every operation, parameter, and response shape.
+- **`catalog.ts`** — generated. Exposes `CATALOG` (every operation with `operationId`, `module`, `domain`, `auth`, `riskLevel`, `isWrite`, JSON Schema), plus `CATALOG_OPERATION_COUNT` (109) and `CATALOG_SPEC_VERSION` (`3.0.0`).
+- Everything downstream reads the catalog, so regenerating from a new spec updates the REST client, the tools, and the mock server in lockstep. No tool can describe an operation the spec doesn't define.
 
-```json
-{
-  "mcpServers": {
-    "bitget": {
-      "command": "npx",
-      "args": ["-y", "@bitget/mcp-server", "--read-only"],
-      "env": {
-        "BITGET_API_KEY": "bg_xxx",
-        "BITGET_SECRET_KEY": "your-secret-key",
-        "BITGET_PASSPHRASE": "your-passphrase"
-      }
-    }
-  }
-}
+**Catalog shape (3.0.0):** 109 operations — 89 visible across 6 to-C modules (`account` 39, `trade` 17, `market` 16, `strategy` 5, `cryptoloans` 11, `tax` 1) and 20 hidden across 2 institutional modules (`broker` 11, `instloan` 9). 93 operations are private (signed), 16 public; 39 are writes, 70 reads.
+
+---
+
+## 3. Tool surfaces
+
+Each surface chooses how the catalog is projected into AI-callable tools.
+
+### 3.1 `intent` (default)
+
+16 curated, workflow-oriented **verbs** whose combined `fronts` cover every catalog operation — so the intent surface loses no capability versus the 1:1 tier. Each verb routes to a concrete operation by its `action`. `discover` groups them by **business domain** (the intent axis), which is distinct from the gating module below:
+
+| Domain | Verbs |
+|---|---|
+| market | `market` |
+| trade | `order`, `position`, `strategy_order` |
+| account | `account_overview`, `account_config`, `repayment` |
+| funds | `transfer_funds`, `deposit`, `withdraw`, `funds_records` |
+| subaccount | `subaccount` |
+| loan | `loan` |
+| tax | `tax` |
+| broker | `broker` |
+| instloan | `inst_loan` |
+
+Verbs are gated by their **primary module**, a different axis from the domain — the `account` module alone gates every account, funds, and subaccount verb. `modules: "market"` yields only the `market` verb; `modules: "all"` yields the **14 to-C verbs** (the hidden `broker` and `inst_loan` verbs load only when their modules are named explicitly). `strategy_order` is gated on `trade` (not `strategy`): strategy orders are a trading capability an agent expects whenever trading is on, and the underlying strategy-module operations remain callable via `raw` regardless.
+
+### 3.2 `full`
+
+One tool per operation, 1:1 with the catalog, bounded by the loaded modules. Use it when the AI should see every operation explicitly.
+
+### 3.3 Always-on tools
+
+- **`discover`** — progressive disclosure of the catalog: domains → a domain's verbs → a verb's actions and parameter contract. Lets an agent navigate 109 operations without all of them being resident as tools.
+- **`raw`** — call any operation directly by `operationId` with a JSON `args` payload. The escape hatch that guarantees full API reach from a small tool surface.
+
+Switch surface with `--surface intent|full` (CLI / MCP) or the `surface` option (SDK).
+
+---
+
+## 4. Module system
+
+A single package with module filtering (rather than many packages) keeps one shared REST client, signer, and rate limiter, and one version line.
+
+- **`DEFAULT_MODULES`** = `account`, `trade`, `market` (72 operations) — the lean profile.
+- **`HIDDEN_MODULES`** = `broker`, `instloan` — excluded from the to-C surface unless named in `--modules`.
+- `--modules <list>` loads a subset; `--modules all` loads the six to-C modules. `broker` and `instloan` stay hidden — `all` excludes them, so name them explicitly (e.g. `--modules broker,instloan`) to expose them.
+
+Why filter: Cursor caps MCP servers at 40 tools; each tool description also costs context. The intent surface on the lean profile is ~14 tools, leaving headroom for other servers. See the module table in the project README, or run `bgc discover` for the live list.
+
+---
+
+## 5. Safety model
+
+Every operation carries a `riskLevel` (`read` · `write` · `high`) derived from the spec. Surfaces enforce four independent guardrails:
+
+| Guardrail | Effect |
+|---|---|
+| `readOnly` | `full` surface strips write tools entirely. Intent verbs stay (their read actions remain useful) but any write action self-blocks at the safety gate. |
+| `confirm` | High-risk / destructive operations self-gate: a first call returns `{ confirmationRequired: true }` instead of executing, so the agent must explicitly re-issue with confirmation. |
+| `paperTrading` | Routes calls to Bitget's Demo Trading environment for safe rehearsal. |
+| `dryRun` | Builds and validates the request, then returns it without sending. |
+
+All invocations return a uniform envelope via `safeInvoke`: `{ ok: true, ... }` on success or `{ ok: false, error: { type, ... } }` on failure — never a thrown exception across the tool boundary. `riskLevel` is also mapped to MCP tool annotations so MCP hosts can surface read-vs-write intent natively.
+
+---
+
+## 6. Request lifecycle
+
 ```
-
-**无 API Key**（仅公共行情数据）:
-
-```json
-{
-  "mcpServers": {
-    "bitget": {
-      "command": "npx",
-      "args": ["-y", "@bitget/mcp-server"]
-    }
-  }
-}
+AI issues a tool call (verb + action, or operationId via raw)
+  └─► resolve operation in CATALOG; confirm its module is loaded
+      └─► validate params against the operation's JSON Schema
+          ├─ readOnly / risk gate (writes blocked or confirm-gated)
+          ├─ auth check (private ops require all three credentials)
+          └─► REST client
+              ├─ client-side rate limiter (token bucket)
+              ├─ build URL + query/body for /api/v3/...
+              ├─ HMAC-SHA256 sign (private ops)
+              ├─ HTTPS request (paperTrading → demo host)
+              ├─ parse response, map Bitget business codes
+              └─► safeInvoke envelope back to the AI
 ```
 
 ---
 
-## 2. Technical Stack
+## 7. Tech stack
 
-| 组件 | 选型 | 理由 |
-|------|------|------|
-| 语言 | TypeScript 5.x | MCP 生态标准语言，类型安全，npx 生态原生支持 |
-| 运行时 | Node.js >= 18 | 原生 fetch 支持（零 HTTP 依赖），LTS 稳定 |
-| MCP SDK | `@modelcontextprotocol/sdk` | 官方 SDK，协议兼容性有保障 |
-| HTTP 客户端 | Node.js 原生 `fetch` | 零依赖，Node 18+ 内置 |
-| 签名 | Node.js 原生 `crypto` | HMAC-SHA256，零依赖 |
-| CLI 解析 | Node.js 原生 `parseArgs` | `node:util` 内置，零依赖 |
-| 构建工具 | `tsup` | 打包为单文件，启动快，tree-shaking |
-| 包管理 | npm | 发布到 npm registry |
+| Concern | Choice | Rationale |
+|---|---|---|
+| Language | TypeScript 5.x | MCP ecosystem standard, type-safe |
+| Runtime | Node.js ≥ 20 | Native `fetch`, `crypto`, `parseArgs`; Node 18 is EOL |
+| Module format | ESM-only | Modern, tree-shakeable |
+| SDK dependencies | **Zero runtime deps** | Signing, HTTP, and arg parsing all use Node built-ins |
+| MCP transport | `@modelcontextprotocol/sdk` | Official SDK, protocol-compatible (used by `agent-mcp`) |
+| Output dir | `lib/` | Compiled ESM published to npm |
 
-**零外部依赖原则**: 除 `@modelcontextprotocol/sdk` 外，不引入任何第三方运行时依赖。签名、HTTP、CLI 解析全部使用 Node.js 内置模块。
+The SDK ships a built-in **mock server** (`@bitget-ai/bitget-agent-sdk/testing`) seeded with deterministic tickers, instruments, and balances, so surfaces and the cross-repo e2e test can exercise every operation offline.
 
 ---
 
-## 3. Architecture
+## 8. Packages
 
-### 3.1 System Flow
+| Package | Role |
+|---|---|
+| `@bitget-ai/bitget-agent-sdk` | Foundation — catalog, typed REST client, tool builder, mock server |
+| `@bitget-ai/bitget-agent-cli` | Shell surface — the `bgc` CLI |
+| `@bitget-ai/bitget-agent-mcp` | MCP surface — local stdio server for MCP hosts |
+| `@bitget-ai/bitget-agent-skill` | Skill surface — markdown that teaches Claude Code / Codex / OpenClaw to drive `bgc` |
+| `@bitget-ai/bitget-signal` | Independent market-signal product (no API key); not part of the UTA v3 trading surface |
 
-```
-┌─────────────────┐     MCP Protocol (stdio)     ┌──────────────────────────┐
-│                 │ ◄──────────────────────────► │   Bitget MCP Server      │
-│   AI Assistant  │                               │                          │
-│  (Claude/Cursor │     Tool Call Request          │  ┌──────────────────┐   │
-│   /Copilot)     │ ────────────────────────────► │  │  Module Router   │   │
-│                 │                               │  │  (spot/futures/  │   │
-│                 │     Tool Call Response         │  │   account/...)   │   │
-│                 │ ◄──────────────────────────── │  └────────┬─────────┘   │
-└─────────────────┘                               │           │             │
-                                                  │  ┌────────▼─────────┐   │
-                                                  │  │   Tool Handler   │   │
-                                                  │  │  (validate +     │   │
-                                                  │  │   transform)     │   │
-                                                  │  └────────┬─────────┘   │
-                                                  │           │             │
-                                                  │  ┌────────▼─────────┐   │
-                                                  │  │   REST Client    │   │
-                                                  │  │  ┌─────────────┐ │   │
-                                                  │  │  │  Signer     │ │   │
-                                                  │  │  │  (HMAC-256) │ │   │
-                                                  │  │  ├─────────────┤ │   │
-                                                  │  │  │ Rate Limiter│ │   │
-                                                  │  │  ├─────────────┤ │   │
-                                                  │  │  │ Error       │ │   │
-                                                  │  │  │ Handler     │ │   │
-                                                  │  │  └─────────────┘ │   │
-                                                  │  └────────┬─────────┘   │
-                                                  └───────────┼─────────────┘
-                                                              │ HTTPS
-                                                  ┌───────────▼─────────────┐
-                                                  │   api.bitget.com        │
-                                                  │   Bitget REST API       │
-                                                  └─────────────────────────┘
-```
-
-### 3.2 Component Responsibilities
-
-| 组件 | 职责 |
-|------|------|
-| **Index (入口)** | 解析 CLI 参数，初始化配置，启动 MCP Server |
-| **Config Manager** | 合并环境变量 + CLI 参数，验证必填项，管理模块加载列表 |
-| **Server** | 创建 MCP Server 实例，按模块注册 tools，处理 stdio 通信 |
-| **Module Router** | 根据 `--modules` 配置决定加载哪些 tool 模块 |
-| **Tool Handler** | 每个 tool 的具体实现：参数校验 → 构造请求 → 调用 REST Client → 格式化响应 |
-| **REST Client** | 统一 HTTP 请求层：URL 构造、请求签名、发送请求、解析响应 |
-| **Signer** | HMAC-SHA256 签名实现，所有私有接口请求必经 |
-| **Rate Limiter** | 令牌桶算法，防止 AI 循环调用突破 Bitget 频率限制 |
-| **Error Handler** | 统一错误格式化，将 Bitget API 错误转为 AI 可理解的结构化消息 |
-
-### 3.3 Request Lifecycle
-
-```
-1. AI 发起 Tool Call
-   └─► MCP Server 接收 { tool: "spot_place_order", params: {...} }
-       └─► Module Router 确认该 tool 已加载
-           └─► Tool Handler:
-               ├─ 验证参数完整性和类型
-               ├─ 检查 --read-only 模式（写操作直接拒绝）
-               ├─ 检查 API Key 是否已配置（私有接口必须）
-               ├─ 参数转换（MCP 参数 → Bitget API 参数）
-               └─► REST Client:
-                   ├─ Rate Limiter 检查频率限制
-                   ├─ 构造完整 URL + Query/Body
-                   ├─ Signer 计算 HMAC-SHA256 签名
-                   ├─ 发送 HTTPS 请求到 api.bitget.com
-                   ├─ 解析响应 JSON
-                   ├─ 检查 Bitget 业务状态码
-                   └─► 返回结构化结果给 Tool Handler
-               └─► Tool Handler 格式化响应
-                   └─► MCP Server 返回给 AI
-```
+See each package's own repo (linked in the project README) for per-package detail.
 
 ---
 
-## 4. Module System
-
-### 4.1 Design Philosophy
-
-采用**单包 + 模块过滤**架构（参考 Stripe MCP `--tools` 和 Supabase `?features` 模式）。
-
-**为什么不拆成多个 npm 包？**
-
-- 用户只需配置一个 MCP Server，体验最好
-- 共享 REST Client、签名、限流等基础设施，避免重复
-- 版本统一管理，不会出现模块间版本不兼容
-
-**为什么需要模块过滤？**
-
-- Cursor 全局限制最多 40 个 MCP tools
-- GitHub Copilot 限制 128 个 tools
-- 减少 AI 上下文占用（每个 tool description 消耗 200-400 tokens）
-- 用户只关心自己用到的功能
-
-### 4.2 Module List
-
-| 模块 ID | 名称 | Tool 数量 | 默认加载 | 需要 API Key |
-|---------|------|-----------|---------|-------------|
-| `spot` | 现货交易 | 12 | Yes | 部分（行情不需要，交易需要） |
-| `futures` | 合约交易 | 14 | Yes | 部分 |
-| `account` | 账户 & 钱包 | 8 | Yes | Yes |
-| `margin` | 杠杆交易 | 7 | No | Yes |
-| `copytrading` | 跟单交易 | 5 | No | Yes |
-| `convert` | 闪兑 | 3 | No | Yes |
-| `earn` | 理财 | 3 | No | Yes |
-| `p2p` | P2P 交易 | 2 | No | Yes |
-| `broker` | 经纪商 | 3 | No | Yes |
-
-**默认加载**: spot + futures + account = **34 tools**（在 Cursor 40 上限内，留 6 个位置给用户其他 MCP Server）
-
-### 4.3 Module Loading Logic
-
-```
-CLI: --modules spot,futures,margin,account
-                    │
-                    ▼
-        ┌─────────────────────┐
-        │ 解析 modules 参数    │
-        │                     │
-        │ "all" → 加载全部     │
-        │ 未指定 → 默认三模块   │
-        │ 指定列表 → 仅加载指定 │
-        └──────────┬──────────┘
-                   │
-         ┌─────────▼─────────┐
-         │ 遍历模块列表       │
-         │ 调用每个模块的      │
-         │ registerTools()    │
-         └─────────┬─────────┘
-                   │
-         ┌─────────▼─────────┐
-         │ 过滤 --read-only   │
-         │ 移除所有写操作 tool │
-         └─────────┬─────────┘
-                   │
-         ┌─────────▼─────────┐
-         │ 注册到 MCP Server  │
-         └───────────────────┘
-```
-
----
-
-## 5. Tool Design Principles
-
-### 5.1 Workflow-Oriented Merging
-
-**不是 1:1 映射 API endpoint，而是面向用户工作流合并。**
-
-合并规则：
-
-| 场景 | 策略 | 示例 |
-|------|------|------|
-| 同类数据 + 仅时间范围不同 | 合并 | `candles` + `history-candles` → `spot_get_candles` |
-| 同实体 + 不同查询维度 | 合并 | `open-orders` + `history-orders` + `order-detail` → `spot_get_orders` |
-| 单笔 vs 批量 | 合并 | `place-order` + `batch-orders` → `spot_place_order`（数组长度自动路由） |
-| 返回结构完全不同 | 不合并 | `ticker` vs `orderbook` vs `candles` 各自独立 |
-| 读 vs 写 | 不合并 | `get_orders` 和 `cancel_orders` 绝不合并 |
-| 风险等级不同 | 不合并 | 查余额 vs 提币必须分开 |
-
-### 5.2 Naming Convention
-
-```
-{module}_{action}_{object}
-```
-
-- `module`: spot, futures, margin, copy, convert, earn, p2p, broker
-- `action`: get, place, cancel, set, update, manage
-- `object`: ticker, depth, candles, orders, fills, positions, assets, ...
-
-account 模块例外，不加 module 前缀（因为是跨模块通用的）：`get_account_assets`、`transfer`、`withdraw`
-
-### 5.3 Tool Description Standards
-
-每个 tool 的 description 必须包含：
-
-1. **一句话功能说明**（AI 用来判断是否调用）
-2. **认证要求**（Public / Private）
-3. **频率限制**（如 "Rate limit: 10 req/s per UID"）
-4. **风险标注**（如 "[CAUTION] This will execute a real trade"）
-
-示例：
-
-```
-"Get real-time ticker data for a spot trading pair. Returns last price, 24h volume, bid/ask prices. Public endpoint, no authentication required. Rate limit: 20 req/s per IP."
-```
-
-```
-"Place one or more spot orders. Supports limit and market order types. [CAUTION] This will execute real trades on your account. Private endpoint, requires API key. Rate limit: 10 req/s per UID."
-```
-
-### 5.4 Parameter Design Standards
-
-- 每个 tool 参数不超过 8 个（AI 容易构造）
-- 所有参数使用 JSON Schema 的 `description` 字段
-- 使用 `enum` 约束可选值，帮助 AI 选择
-- 金额、价格等使用 `string` 类型（避免浮点精度问题）
-- 默认值在 description 中说明
-
-示例参数定义：
-
-```json
-{
-  "symbol": {
-    "type": "string",
-    "description": "Trading pair symbol, e.g. 'BTCUSDT', 'ETHUSDT'"
-  },
-  "side": {
-    "type": "string",
-    "enum": ["buy", "sell"],
-    "description": "Order side"
-  },
-  "orderType": {
-    "type": "string",
-    "enum": ["limit", "market"],
-    "description": "Order type. 'limit' requires price parameter."
-  },
-  "price": {
-    "type": "string",
-    "description": "Order price. Required for limit orders. Use string to avoid precision issues, e.g. '67530.5'"
-  },
-  "size": {
-    "type": "string",
-    "description": "Order quantity. Use string to avoid precision issues, e.g. '0.001'"
-  }
-}
-```
-
----
-
-## 6. Project Structure
-
-```
-@bitget/mcp-server/
-├── package.json                    # npm 包配置、bin 入口
-├── tsconfig.json                   # TypeScript 配置
-├── tsup.config.ts                  # 构建配置（打包为单文件）
-├── README.md                       # 用户文档（快速开始、配置说明）
-├── LICENSE                         # MIT License
-├── docs/
-│   ├── architecture.md             # 本文档：系统架构设计
-│   ├── tools-reference.md          # 完整 Tool 规格参考
-│   ├── security.md                 # 安全模型文档
-│   └── api-mapping.md              # Bitget API ↔ MCP Tool 映射表
-├── src/
-│   ├── index.ts                    # 程序入口：CLI 解析 → 启动 Server
-│   ├── server.ts                   # MCP Server：创建实例、注册模块、stdio 通信
-│   ├── config.ts                   # 配置管理：环境变量 + CLI 合并、校验
-│   ├── client/
-│   │   ├── rest-client.ts          # REST API 客户端：请求构造、签名、发送
-│   │   └── types.ts                # 公共类型：请求/响应/错误
-│   ├── tools/
-│   │   ├── types.ts                # Tool 注册类型定义
-│   │   ├── spot-market.ts          # 现货行情（5 tools）
-│   │   ├── spot-trade.ts           # 现货交易（7 tools）
-│   │   ├── futures-market.ts       # 合约行情（7 tools）
-│   │   ├── futures-trade.ts        # 合约交易（7 tools）
-│   │   ├── account.ts              # 账户 & 钱包（8 tools）
-│   │   ├── margin.ts               # 杠杆交易（7 tools）
-│   │   ├── copy-trading.ts         # 跟单交易（5 tools）
-│   │   ├── convert.ts              # 闪兑（3 tools）
-│   │   ├── earn.ts                 # 理财（3 tools）
-│   │   ├── p2p.ts                  # P2P（2 tools）
-│   │   └── broker.ts               # 经纪商（3 tools）
-│   └── utils/
-│       ├── signature.ts            # HMAC-SHA256 签名
-│       ├── rate-limiter.ts         # 令牌桶限流器
-│       └── errors.ts               # 统一错误类型和处理
-└── tests/                          # 测试（后续补充）
-    ├── client/
-    ├── tools/
-    └── utils/
-```
-
-### 6.1 File Responsibilities
-
-| 文件 | 导出 | 职责 |
-|------|------|------|
-| `index.ts` | `main()` | 解析 `--modules`、`--read-only`、`--help`、`--version`，创建 Config，启动 Server |
-| `server.ts` | `createServer(config)` | 创建 `McpServer` 实例，根据 config 加载模块，连接 stdio transport |
-| `config.ts` | `BitgetConfig` 类型 + `loadConfig()` | 合并 env + CLI，校验，返回强类型配置对象 |
-| `rest-client.ts` | `BitgetRestClient` 类 | 封装 GET/POST，自动签名，自动限流，统一错误处理 |
-| `tools/*.ts` | `registerXxxTools(server, client)` | 每个模块导出一个注册函数，向 server 注册该模块所有 tools |
-| `signature.ts` | `sign(message, secretKey)` | HMAC-SHA256 签名和验证 |
-| `rate-limiter.ts` | `RateLimiter` 类 | 令牌桶实现，支持 per-endpoint 配置 |
-| `errors.ts` | `BitgetApiError` 类 | 统一错误类型、Bitget 错误码映射 |
-
----
-
-## 7. CLI Interface
-
-```
-Usage: @bitget/mcp-server [options]
-
-Options:
-  --modules <list>     Comma-separated list of modules to load
-                       Available: spot, futures, account, margin, copytrading,
-                       convert, earn, p2p, broker
-                       Special: "all" loads everything
-                       Default: spot,futures,account
-
-  --read-only          Only expose read/query tools, disable all write operations
-                       (no order placement, no transfers, no withdrawals)
-
-  --help               Show this help message
-  --version            Show version number
-
-Environment Variables:
-  BITGET_API_KEY       Your Bitget API key (required for private endpoints)
-  BITGET_SECRET_KEY    Your Bitget secret key (required for private endpoints)
-  BITGET_PASSPHRASE    Your Bitget API passphrase (required for private endpoints)
-
-Examples:
-  # Default modules (spot + futures + account)
-  npx -y @bitget/mcp-server
-
-  # Specific modules
-  npx -y @bitget/mcp-server --modules spot,margin
-
-  # All modules
-  npx -y @bitget/mcp-server --modules all
-
-  # Read-only mode (market data + account queries only)
-  npx -y @bitget/mcp-server --read-only
-```
-
----
-
-## 8. Error Handling
-
-### 8.1 Error Categories
-
-| 类型 | 场景 | 处理方式 |
-|------|------|---------|
-| **ConfigError** | API Key 未配置但调用私有接口 | 返回清晰提示，告知用户配置 env |
-| **AuthenticationError** | 签名错误、Key 过期 | 返回 Bitget 原始错误 + 排查建议 |
-| **RateLimitError** | 客户端侧限流触发 | 返回等待时间，建议 AI 稍后重试 |
-| **ValidationError** | 参数类型/范围错误 | 返回具体字段和期望值 |
-| **BitgetApiError** | Bitget 服务端业务错误 | 返回 code + message + 建议 |
-| **NetworkError** | 网络超时、连接失败 | 返回重试建议 |
-
-### 8.2 Error Response Format
-
-所有错误统一格式，便于 AI 理解和处理：
-
-```json
-{
-  "error": true,
-  "type": "BitgetApiError",
-  "code": "43012",
-  "message": "Insufficient balance. Available USDT: 10.5, required: 100.0",
-  "suggestion": "Check your account balance with get_account_assets before placing orders.",
-  "endpoint": "POST /api/v2/spot/trade/place-order",
-  "timestamp": "2026-02-10T08:30:00.000Z"
-}
-```
-
----
-
-## 9. Development Phases
-
-### Phase 1: Core + Spot + Account (MVP)
-
-**目标**: 可用的现货交易 + 账户管理
-
-- 项目脚手架 (package.json, tsconfig, tsup, CLI)
-- 核心基础设施 (REST Client, 签名, 限流, 错误处理, 配置)
-- Spot Market tools (5)
-- Spot Trade tools (7)
-- Account tools (8)
-- README + 使用文档
-- **合计: 20 tools, 可发布 alpha**
-
-### Phase 2: Futures
-
-**目标**: 完整的合约交易能力
-
-- Futures Market tools (7)
-- Futures Trade tools (7)
-- **累计: 34 tools (默认加载集), 可发布 beta**
-
-### Phase 3: Extended Modules
-
-**目标**: 杠杆、跟单、闪兑等扩展模块
-
-- Margin tools (7)
-- Copy Trading tools (5)
-- Convert tools (3)
-- Earn tools (3)
-- P2P tools (2)
-- Broker tools (3)
-- **累计: 57 tools (全量), 可发布 v1.0**
-
----
-
-## 10. Versioning Strategy
-
-- 遵循 Semantic Versioning (semver)
-- MCP Server 版本与 Bitget API V2 对应
-- Tool 的增删改在 CHANGELOG 中明确标注
-- 废弃 tool 先标注 `[DEPRECATED]`，保留一个大版本后移除
+## 9. Versioning
+
+- Semantic Versioning. The SDK, CLI, MCP, and skill share the **3.0.0** line, aligned to the Bitget **UTA v3** API.
+- `CATALOG_SPEC_VERSION` tracks the spec the catalog was generated from.
+- `@bitget-ai/bitget-signal` versions independently — it has no API-key trading surface and was not part of the UTA v3 upgrade.
+- Operation additions/removals follow from regenerating the catalog against a new spec and are recorded per-repo in CHANGELOG.
